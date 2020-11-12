@@ -1,0 +1,30 @@
+1. Install and Execute Xampp
+1.1 Create a admin user with no password
+2. Download latest release package of leantime (take the one in Github)
+3. Create an empty MySQL database (Store on Github)
+3.1 C:\xampp\mysql\data\leantime_pes
+4. Upload entire directory to your server -> Put Folder in C:\xampp\htdocs\
+5. Point your domain to the C:\xampp\htdocs\public\ directory
+5.1 Goto C:\Windows\System32\drivers\etc
+	Write: 
+	127.0.0.1    mysite.local
+	127.0.0.1    www.mysite.local
+5.2 C:\xampp\apache\conf\httpd.conf
+Remove #
+Include conf/extra/httpd-vhosts.conf
+5.3 C:\xampp\apache\conf\extra\httpd-vhosts.conf
+Include:
+<VirtualHost *:80>
+    DocumentRoot "C:/xampp/htdocs/mysite"
+    ServerName mysite.local
+    ServerAlias www.mysite.local
+    <Directory "C:/xampp/htdocs/mysite">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+5.4 Allow public access
+6. Rename config/configuration.sample.php to config/configuration.php
+7. Fill in your database credentials (username, password, host, dbname) in config/configuration.php
+
+
