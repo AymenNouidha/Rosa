@@ -28,3 +28,11 @@ Include:
 7. Fill in your database credentials (username, password, host, dbname) in config/configuration.php
 
 
+
+
+Change Port in Xampp: 
+Change in httpd.conf
+DocumentRoot "C:/xampp/htdocs/Leantime/public"
+<Directory "C:/xampp/htdocs/Leantime/public">
+
+
