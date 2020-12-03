@@ -48,7 +48,7 @@
  **********************************************************/
 typedef struct tcb_record_t {
 	struct tcb_record_t * nexttcb;
-	struct tcb_record_t * prevtcb;
+	/*struct tcb_record_t * prevtcb;*/
 	char id[NAMESIZE];		//The task id/name
 	void (*staddr) (void);	//Start address
 	int *dataarea;			//The stack data area
@@ -59,10 +59,10 @@ typedef struct tcb_record_t {
 	int savesr;				//The current status register
 	int retaddr;			//The return address
 	int savereg[15];		//The CPU registers
-	int priority;           //The fixed priority of the task
-	int runningPrio;        //The task running priority
-	int waketime;           //The task wake time
-	int state;				//The state of the task
+	/*int priority;  */         //The fixed priority of the task
+	/*int runningPrio;*/        //The task running priority
+	/*int waketime;*/           //The task wake time
+	/*int state;*/				//The state of the task
 } tcb;
 
 #endif /* rosa_def_H_ */
