@@ -36,6 +36,20 @@
  **********************************************************/
 void scheduler(void)
 {
+	if(EXECTASK->nexttcb == NULL){
+		EXECTASK = TCBLIST;
+		return;
+	}
 	//Find the next task to execute
 	EXECTASK = EXECTASK->nexttcb;
+}
+
+/***********************************************************
+ * dispatch
+ *
+ * Comment:
+ *	Assigns the CPU to the first ready task
+ **********************************************************/
+void dispatch(void){
+	
 }

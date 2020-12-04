@@ -55,6 +55,22 @@ tcb * TCBLIST;
 tcb * EXECTASK;
 
 /***********************************************************
+* taskNumber
+*
+* Comment:
+* Tracks the number of Tasks created and deleted
+**********************************************************/
+unsigned int taskNumber;
+
+/***********************************************************
+* taskNumber
+*
+* Comment:
+* Toggles when the system starts
+**********************************************************/
+static unsigned int sysStarted = 0;
+
+/***********************************************************
  * ROSA_init
  *
  * Comment:
@@ -85,10 +101,36 @@ void ROSA_init(void)
  *
  * Comment:
  * 	Create the TCB with correct values.
- *
+ * Return : unsigned int
+ *         0 - Unsuccessful
+ *		   1 - Successful
+ *         2 - Out of Memory
+ *         3 - Task Handle is busy
  **********************************************************/
-void ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, int * tcbStack, int tcbStackSize)
+unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, unsigned int taskPrio, int * tcbStack, int tcbStackSize)
 {
+	unsigned int statusVal = 0;
+	interruptDisable();
+	// Checks if TCB is already created
+	if(TCBLIST != NULL){
+		tcb * tcbTmp;
+		tcbTmp = TCBLIST;
+		while(tcbTmp != NULL){
+			if(tcbTmp == tcbTask){
+				statusVal = 3;
+				return statusVal;
+			}
+			tcbTmp = tcbTmp->nexttcb;
+		}
+	}
+	
+	// Checks if TCB is greater than MAXTASKNUMBER
+	if(taskNumber > MAXTASKNUMBER){
+		statusVal = 2;
+		return statusVal;
+	}
+	
+	
 	int i;
 
 	//Initialize the tcb with the correct values
@@ -108,12 +150,17 @@ void ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, in
 	tcbTask->datasize = tcbStackSize;
 	tcbTask->dataarea = tcbStack + tcbStackSize;
 	tcbTask->saveusp = tcbTask->dataarea;
+	//tcbTask->priority = taskPrio;
 
 	//Set the initial SR.
 	tcbTask->savesr = ROSA_INITIALSR;
 
 	//Initialize context.
 	contextInit(tcbTask);
+	taskNumber++;
+	statusVal = 1;
+	interruptEnable();
+	return statusVal;
 }
 
 
@@ -132,14 +179,32 @@ void ROSA_tcbInstall(tcb * tcbTask)
 	if(TCBLIST == NULL) {
 		TCBLIST = tcbTask;
 		TCBLIST->nexttcb = tcbTask;			//Install the first tcb
-		tcbTask->nexttcb = TCBLIST;			//Make the list circular
+		TCBLIST->nexttcb = NULL;			
 	}
 	else {
 		tcbTmp = TCBLIST;					//Find last tcb in the list
-		while(tcbTmp->nexttcb != TCBLIST) {
+		while(tcbTmp->nexttcb != NULL) {
+			if(tcbTmp == tcbTask)
+				return;
 			tcbTmp = tcbTmp->nexttcb;
 		}
 		tcbTmp->nexttcb = tcbTask;			//Install tcb last in the list
-		tcbTask->nexttcb = TCBLIST;			//Make the list circular
+		tcbTask->nexttcb = NULL;			
 	}
+}
+
+/***********************************************************
+ * ROSA_tcbDelete
+ *
+ * Comment:
+ * 	Removes a task from kernel
+ * Return : unsigned int
+ *         0 - Unsuccessful
+ *		   1 - Successful
+ **********************************************************/
+
+unsigned int ROSA_tcbDelete(tcb *tcbTask)
+{
+	unsigned statusVal = 0;
+	return statusVal;
 }

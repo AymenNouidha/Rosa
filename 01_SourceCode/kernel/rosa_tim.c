@@ -66,3 +66,41 @@ int timerPeriodSet(unsigned int ms)
 	timerRCSet(rc);
 	return rc * prescale / FOSC0;
 }
+
+/**************************************************************************
+ * ROSA_sysTickWait
+ *
+ * Comment:
+ * 	Suspends the using Task for the given amount of system scheduler ticks. 
+ *  If the delay is 0, it forces a rescheduling.
+ *
+ ****************************************************************************/
+void ROSA_sysTickWait(unsigned int ticksToWait)
+{
+	
+}
+
+/********************************************************************************************
+ * ROSA_sysTickWaitUntil
+ *
+ * Comment:
+ * 	Suspends the using Task until a certain point in time is reached (previousWake-Time+timeIncrement).
+ *
+ ***********************************************************************************************/
+void ROSA_sysTickWaitUntil(unsigned int *previousWakeTime, unsigned int timeIncrement)
+{
+	
+}
+
+/********************************************************************************************
+ * ROSA_getTickCount
+ *
+ * Comment:
+ * 	returns the value of the tick count which keeps track of the system schedulertick count.
+ * Return : uint32_t
+ *        - Actual value of the system scheduler tick count
+ ***********************************************************************************************/
+unsigned int ROSA_getTickCount()
+{
+	return 0;
+}

@@ -46,8 +46,19 @@ int timerPeriodSet(unsigned int ms);
 extern void timerPrescaleSet(int);
 extern void timerRCSet(int);
 
+//Absolute delay
+void ROSA_sysTickWaitUntil(unsigned int *previousWakeTime, unsigned int timeIncrement);
+
+//Relative Delay
+void ROSA_sysTickWait(unsigned int ticksToWait);
+
+// Returns current tick count
+unsigned int ROSA_getTickCount();
+
 //Timer period variables
 extern int timerPrescale;
 extern int timerRC;
+
+
 
 #endif /* _ROSA_TIMER_H_ */

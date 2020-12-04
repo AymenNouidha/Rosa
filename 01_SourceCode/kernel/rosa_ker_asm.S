@@ -107,6 +107,7 @@ contextInit:
 	//~ call interruptEnable
 	//~ popm lr
 
+
 	//Initialize regs to zero
 	mov r0,0x0
 	st.w r12[TCB.SAVEREG.R0],r0
@@ -175,6 +176,7 @@ contextSave:
 	//Fetch the current executing task
 	lda.w r12,EXECTASK
 	ld.w r12,r12[0x0]
+
 
 	//Save work registers to TCB
 	st.w r12[TCB.SAVER0],r0

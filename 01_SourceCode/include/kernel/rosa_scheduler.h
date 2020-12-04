@@ -38,4 +38,7 @@
  **********************************************************/
 void scheduler(void);
 
+// Assigns the CPU to the first ready task
+void dispatch(void);
+
 #endif /* _scheduler_H_ */
