@@ -2,11 +2,11 @@
  * rosa_sem.h
  */ 
 
-
 #ifndef ROSA_SEM_H_
 #define ROSA_SEM_H_
 
 #include <stdbool.h>
+
 /**********************************************************************************************
  * semaphoreHandle
  *
@@ -16,18 +16,20 @@
  *           ceilPrio: used for IPCP. Initializes to highest priority task using the semaphore.
  ***********************************************************************************************/
 
-typedef struct{
-	bool isFree; 
-	int ceilPrio;
-}semaphoreHandle;
+struct semaphore_handle
+{
+    bool isFree; //False if semaphore is locked. Initialize to true.
+    int ceilPrio; //Initialize to semaphore's highest prio task.
+    int storedPrio; //Stores the priority the locking task has now.
+};
 
 //Creates a semaphore
 semaphoreHandle ROSA_semaphoreCreate(int priorityCeiling);
 
+//Takes a semaphore
+int ROSA_semaphoreTake(semaphoreHandle semaphore, uint_32 waitTime);
+
 //Releases a semaphore
 int ROSA_semaphoreGive(semaphoreHandle semaphore);
-
-//Takes a semaphore
-int ROSA_semaphoreTake(semaphoreHandle semaphore, int waitTime);
 
 #endif /* ROSA_SEM_H_ */
