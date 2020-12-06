@@ -1,10 +1,10 @@
 /*
  * rosa_sem.c
- *
  */ 
 
+//Kernel includes
+#include "kernel/rosa_ker.h"
 #include "kernel/rosa_sem.h"
-
 
 /***********************************************************
  * ROSA_semaphoreCreate
@@ -14,26 +14,13 @@
  * Return : semaphoreHandle
  *			The handle of the newly created semaphore
  **********************************************************/
-semaphoreHandle ROSA_semaphoreCreate(int priorityCeiling)
+semaphoreHandle semaphoreCreate(int priorityCeiling)
 {
-	semaphoreHandle sem;
-	return sem;
-} 
+	semaphoreHandle sem = {.isFree = true; .ceilPrio = priorityCeiling};
+    return sem;
+}
 
-
-/***********************************************************
- * ROSA_semaphoreGive
- *
- * Comment:
- * 	Releases a given semaphore
- * Return : unsigned int
- *         0 - for errors
- *		   1 - semaphore is released
- **********************************************************/
-int ROSA_semaphoreGive(semaphoreHandle semaphore)
-{
-	return 0;
-} 
+//TODO: Replace runningPrio with whatever the actual name is!
 
 /***********************************************************
  * ROSA_semaphoreTake
@@ -45,7 +32,53 @@ int ROSA_semaphoreGive(semaphoreHandle semaphore)
  *		   1 - semaphore is taken
  *        -1 - for errors
  **********************************************************/
-int ROSA_semaphoreTake(semaphoreHandle semaphore, int waitTime)
+int semaphoreTake(semaphoreHandle* semaphore, uint_32 waitTime)
 {
-	return 0;
-} 
+	interruptDisable(void);
+	if (semaphore->isFree == true)
+	{
+		semaphore->isFree = false;
+		semaphore->storedPrio = EXECTASK->runningPrio;
+		if (semaphore->ceiling > EXECTASK->runningPrio)
+			EXECTASK->runningPrio = semaphore->ceiling;
+		interruptEnable(void);
+		return 1;
+	}
+	interruptEnable(void);
+	else
+	{
+		if (waitTime == 0)
+		{
+			return 0;
+		}
+		else
+		{
+			ROSA_sysTickWait(waitTime);
+			return ROSA_semaphoreTake(semaphore, 0);
+		}
+	}
+}
+
+/***********************************************************
+ * ROSA_semaphoreGive
+ *
+ * Comment:
+ * 	Releases a given semaphore
+ * Return : unsigned int
+ *         0 - for errors
+ *		   1 - semaphore is released
+ **********************************************************/
+int semaphoreGive(semaphoreHandle* semaphore)
+{
+	interruptDisable(void);
+    if (semphor->isFree == false)
+    {
+		EXECTASK->runningPrio = semaphore->storedPrio;
+        semaphore->isFree = true;
+        interruptEnable(void);
+        return 1;
+    }
+    interruptEnable(void);
+    else
+        return 0;
+}
