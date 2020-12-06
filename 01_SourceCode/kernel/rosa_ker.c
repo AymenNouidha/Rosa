@@ -44,6 +44,15 @@
  * 	Global variables that contain the list of TCB's that
  * 	have been installed into the kernel with ROSA_tcbInstall()
  **********************************************************/
+tcb * DELAYLIST;
+
+/***********************************************************
+ * TCBLIST
+ *
+ * Comment:
+ * 	Global variables that contain the list of TCB's that
+ * 	have been installed into the kernel with ROSA_tcbInstall()
+ **********************************************************/
 tcb * TCBLIST;
 
 /***********************************************************
@@ -99,7 +108,15 @@ void ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, in
 
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
-
+	tcbTask->prevtcb = NULL;
+	
+	//set Wakeuptime to 0
+	tcbTask->waketime = 0;
+	
+	tcbTask->runningpriority=1;
+	tcbTask->priority=1;
+	
+	
 	//Set the task function start and return address.
 	tcbTask->staddr = tcbFunction;
 	tcbTask->retaddr = (int)tcbFunction;
@@ -132,7 +149,9 @@ void ROSA_tcbInstall(tcb * tcbTask)
 	if(TCBLIST == NULL) {
 		TCBLIST = tcbTask;
 		TCBLIST->nexttcb = tcbTask;			//Install the first tcb
+		TCBLIST->prevtcb = tcbTask;
 		tcbTask->nexttcb = TCBLIST;			//Make the list circular
+		tcbTask->prevtcb = TCBLIST;	
 	}
 	else {
 		tcbTmp = TCBLIST;					//Find last tcb in the list
@@ -143,3 +162,5 @@ void ROSA_tcbInstall(tcb * tcbTask)
 		tcbTask->nexttcb = TCBLIST;			//Make the list circular
 	}
 }
+
+

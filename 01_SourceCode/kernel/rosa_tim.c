@@ -27,6 +27,13 @@
 #include "rosa_config.h"
 #include "drivers/delay.h"
 #include "kernel/rosa_int.h"
+#include "kernel/rosa_utils.h"
+
+//Tickcount Variable
+ticktime tickCount=0;
+
+
+
 
 /***********************************************************
  * timerInterruptHandler
@@ -65,4 +72,16 @@ int timerPeriodSet(unsigned int ms)
 	timerPrescaleSet(prescale);
 	timerRCSet(rc);
 	return rc * prescale / FOSC0;
+}
+
+
+ticktime ROSA_sysGetTickCount()
+{
+	return tickCount;
+}
+
+void ROSA_priv_incrementTickCount(ticktime val)
+{
+	tickCount=tickCount+val;
+	
 }

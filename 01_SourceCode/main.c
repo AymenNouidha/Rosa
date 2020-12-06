@@ -37,6 +37,8 @@
 
 //Include configuration
 #include "rosa_config.h"
+#include "kernel/rosa_ker.h"
+#include "kernel/rosa_utils.h"
 
 //Data blocks for the tasks
 #define T1_STACK_SIZE 0x40
@@ -47,6 +49,13 @@ static tcb t1_tcb;
 static int t2_stack[T2_STACK_SIZE];
 static tcb t2_tcb;
 
+#define T3_STACK_SIZE 0x40
+static int t3_stack[T3_STACK_SIZE];
+static tcb t3_tcb;
+
+#define T4_STACK_SIZE 0x40
+static int t4_stack[T4_STACK_SIZE];
+static tcb t4_tcb;
 /*************************************************************
  * Task1
  * LED0 lights up
@@ -55,9 +64,102 @@ static tcb t2_tcb;
 void task1(void)
 {
 	while(1) {
-		ledOn(LED0_GPIO);
-		ledOff(LED1_GPIO);
-		delay_ms(350);
+		ticktime a;
+		a=ROSA_sysGetTickCount();
+		//ROSA_prv_insertTaskToDELAYLIST(&t4_tcb);
+		if(a%2){
+			ledOn(LED0_GPIO);
+			ROSA_prv_extractTaskFromDELAYLIST(&t2_tcb);
+			if(!ROSA_prv_isTaskinDELAYLIST(&t2_tcb)){
+				ledOff(LED1_GPIO);
+			}
+		}
+		else
+		{
+			ledOff(LED0_GPIO);
+			ROSA_prv_insertTaskToDELAYLIST(&t2_tcb);
+			if(ROSA_prv_isTaskinDELAYLIST(&t2_tcb)){
+				ledOn(LED1_GPIO);
+			}
+		}
+		if(ROSA_prv_isTaskinDELAYLIST(&t3_tcb)){
+			ledOn(LED2_GPIO);
+		}
+		else{
+			ledOff(LED2_GPIO);
+		}
+		if(ROSA_prv_isTaskinDELAYLIST(&t4_tcb)){
+			ledOn(LED3_GPIO);
+		}
+		else{
+			ledOff(LED3_GPIO);
+		}
+		if((a>>4)%2){
+			ROSA_prv_extractTaskFromDELAYLIST(&t3_tcb);
+		}
+		if((a>>5)%2){
+			ROSA_prv_insertTaskToDELAYLIST(&t3_tcb);
+			ROSA_prv_extractTaskFromDELAYLIST(&t4_tcb);
+		}
+		if((a>>6)%2){
+			ROSA_prv_insertTaskToDELAYLIST(&t4_tcb);
+		}
+		/*if((a>>1)%2){
+			ledOn(LED1_GPIO);
+		}
+		else
+		{
+			ledOff(LED1_GPIO);
+		}
+		if((a>>2)%2){
+			ledOn(LED2_GPIO);
+		}
+		else
+		{
+			ledOff(LED2_GPIO);
+		}
+		if((a>>3)%2){
+			ledOn(LED3_GPIO);
+		}
+		else
+		{
+			ledOff(LED3_GPIO);
+		}
+		if((a>>4)%2){
+			ledOn(LED4_GPIO);
+		}
+		else
+		{
+			ledOff(LED4_GPIO);
+		}
+		if((a>>5)%2){
+			ledOn(LED5_GPIO);
+		}
+		else
+		{
+			ledOff(LED5_GPIO);
+		}
+		if((a>>6)%2){
+			ledOn(LED6_GPIO);
+		}
+		else
+		{
+			ledOff(LED6_GPIO);
+		}
+		if((a>>7)%2){
+			ledOn(LED7_GPIO);
+		}
+		else
+		{
+			ledOff(LED7_GPIO);
+		}*/
+		
+		ROSA_priv_incrementTickCount(1);
+		/*ledOn(LED0_GPIO);
+		ledOff(LED1_GPIO);*/
+		delay_ms(1000);
+		
+		
 		ROSA_yield();
 	}
 }
@@ -78,6 +180,36 @@ void task2(void)
 }
 
 /*************************************************************
+ * Task3
+ * LED0 goes dark
+ * LED1 lights up
+ ************************************************************/
+void task3(void)
+{
+	while(1) {
+		ledOff(LED3_GPIO);
+		ledOn(LED4_GPIO);
+		delay_ms(150);
+		ROSA_yield();
+	}
+}
+
+/*************************************************************
+ * Task4
+ * LED0 goes dark
+ * LED1 lights up
+ ************************************************************/
+void task4(void)
+{
+	while(1) {
+		ledOff(LED4_GPIO);
+		ledOn(LED3_GPIO);
+		delay_ms(150);
+		ROSA_yield();
+	}
+}
+
+/*************************************************************
  * Main function
  ************************************************************/
 int main(void)
@@ -89,8 +221,16 @@ int main(void)
 	ROSA_tcbCreate(&t1_tcb, "tsk1", task1, t1_stack, T1_STACK_SIZE);
 	ROSA_tcbInstall(&t1_tcb);
 	ROSA_tcbCreate(&t2_tcb, "tsk2", task2, t2_stack, T2_STACK_SIZE);
-	ROSA_tcbInstall(&t2_tcb);
-
+	ROSA_prv_insertTaskToDELAYLIST(&t2_tcb);
+	//ROSA_tcbInstall(&t2_tcb);
+	ROSA_tcbCreate(&t3_tcb, "tsk3", task3, t3_stack, T3_STACK_SIZE);
+	ROSA_prv_insertTaskToDELAYLIST(&t3_tcb);
+	//ROSA_tcbInstall(&t3_tcb);
+	ROSA_tcbCreate(&t4_tcb, "tsk4", task4, t4_stack, T4_STACK_SIZE);
+	ROSA_prv_insertTaskToDELAYLIST(&t4_tcb);
+	//ROSA_tcbInstall(&t4_tcb);
+	
+	
 	//Start the ROSA kernel
 	ROSA_start();
 	/* Execution will never return here */

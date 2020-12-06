@@ -28,6 +28,7 @@
 #define rosa_def_H_
 
 #include "rosa_config.h"
+#include "rosa_tim.h"
 
 #ifndef NULL
 #define NULL 0
@@ -53,6 +54,11 @@ typedef struct tcb_record_t {
 	int savesr;				//The current status register
 	int retaddr;			//The return address
 	int savereg[15];		//The CPU registers
+	struct tcb_record_t * prevtcb;
+	ticktime waketime;		//Wakeuptime for DELAYLIST
+	int runningpriority;
+	int priority;
+	
 } tcb;
 
 #endif /* rosa_def_H_ */

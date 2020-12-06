@@ -34,7 +34,7 @@
  ***********************************************************/
 extern tcb * TCBLIST;
 extern tcb * EXECTASK;
-
+extern tcb * DELAYLIST;
 
 /***********************************************************
  * Kernel low level context switch functions
