@@ -40,6 +40,9 @@
 
 //Data blocks for the tasks
 #define T1_STACK_SIZE 0x40
+static int ti_stack[T1_STACK_SIZE];
+static tcb ti_tcb;
+
 static int t1_stack[T1_STACK_SIZE];
 static tcb t1_tcb;
 
@@ -62,6 +65,21 @@ static tcb t6_tcb;
 
 static int t7_stack[T1_STACK_SIZE];
 static tcb t7_tcb;
+
+/*************************************************************
+ * TaskIDLE
+ * Just sorta sits there
+ * idunno ¯\_(ツ)_/¯
+ ************************************************************/
+ void taskIDLE(void)
+ {
+ 	while(1) {
+ 		delay_ms(1000);
+		//Maybe some sort of print command can be added here
+		//to show all tasks in the TCBLIST? If it prints out
+		//nothing we would know everything was done right.
+ 	}
+ }
 
 /*************************************************************
  * Task1
@@ -214,9 +232,17 @@ int main(void)
 	ROSA_init();
 
  	//Create tasks and install them into the ROSA kernel
+<<<<<<< HEAD
  	ROSA_tcbCreate(&t1_tcb, "tsk1", task1,2, t1_stack, T1_STACK_SIZE);
 	ROSA_tcbInstall(&t1_tcb);
 	ROSA_tcbCreate(&t2_tcb, "tsk2", task2,2, t2_stack, T1_STACK_SIZE);
+=======
+	ROSA_tcbCreate(&ti_tcb, "tskIDL", taskIDLE, 0, ti_stack, T1_STACK_SIZE);
+	ROSA_tcbInstall(&ti_tcb);
+ 	ROSA_tcbCreate(&t1_tcb, "tsk1", task1, 1, t1_stack, T1_STACK_SIZE);
+	ROSA_tcbInstall(&t1_tcb);
+	ROSA_tcbCreate(&t2_tcb, "tsk2", task2, 2, t2_stack, T1_STACK_SIZE);
+>>>>>>> Andreas
 	ROSA_tcbInstall(&t2_tcb);
 	ROSA_tcbCreate(&t5_tcb, "tsk5", task5,3, t5_stack, T1_STACK_SIZE);
 	ROSA_tcbInstall(&t5_tcb);
