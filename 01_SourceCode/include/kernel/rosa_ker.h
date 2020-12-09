@@ -65,6 +65,7 @@ __attribute__((__interrupt__)) extern void timerISR(void);
 //Initialize the kernel
 void ROSA_init(void);
 unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, unsigned int taskPrio, int * tcbStack, int tcbStackSize);
+unsigned int ROSA_tcbDelete(tcb *tcbTask);
 
 //Install a new task TCB into ROSA
 extern void ROSA_tcbInstall(tcb *task);
