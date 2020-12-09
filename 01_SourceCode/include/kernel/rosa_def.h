@@ -29,6 +29,7 @@
 
 
 #include "rosa_config.h"
+#include "rosa_tim.h"
 
 #ifndef NULL
 #define NULL 0
@@ -62,8 +63,8 @@ typedef struct tcb_record_t {
 	struct tcb_record_t * prevtcb;
 	int priority;           //The fixed priority of the task
 	int runningPrio;        //The task running priority
-	int waketime;           //The task wake time
 	int state;				//The state of the task
+	ticktime waketime;		//Wakeuptime for DELAYLIST
 } tcb;
 
 #endif /* rosa_def_H_ */

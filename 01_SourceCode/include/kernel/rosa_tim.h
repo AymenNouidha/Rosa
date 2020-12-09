@@ -28,6 +28,14 @@
 #define _ROSA_TIMER_H_
 
 #include <avr32/io.h>
+#include "stdint.h"
+/***********************************************************
+ * Typedefs
+ ***********************************************************/
+typedef uint32_t ticktime;
+#define MAX_TICK_TIME 4294967295
+
+
 
 /***********************************************************
  * Kernel timer functions
@@ -52,13 +60,14 @@ void ROSA_sysTickWaitUntil(unsigned int *previousWakeTime, unsigned int timeIncr
 //Relative Delay
 void ROSA_sysTickWait(unsigned int ticksToWait);
 
-// Returns current tick count
-unsigned int ROSA_getTickCount();
 
 //Timer period variables
 extern int timerPrescale;
 extern int timerRC;
 
+// User API functions
+ticktime ROSA_sysGetTickCount();
+void ROSA_priv_incrementTickCount(ticktime val);
 
 
 #endif /* _ROSA_TIMER_H_ */

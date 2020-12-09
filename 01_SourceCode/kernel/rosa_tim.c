@@ -27,6 +27,13 @@
 #include "rosa_config.h"
 #include "drivers/delay.h"
 #include "kernel/rosa_int.h"
+#include "kernel/rosa_utils.h"
+
+//Tickcount Variable
+ticktime tickCount=0;
+
+
+
 
 /***********************************************************
  * timerInterruptHandler
@@ -67,6 +74,7 @@ int timerPeriodSet(unsigned int ms)
 	return rc * prescale / FOSC0;
 }
 
+
 /**************************************************************************
  * ROSA_sysTickWait
  *
@@ -100,7 +108,14 @@ void ROSA_sysTickWaitUntil(unsigned int *previousWakeTime, unsigned int timeIncr
  * Return : uint32_t
  *        - Actual value of the system scheduler tick count
  ***********************************************************************************************/
-unsigned int ROSA_getTickCount()
+
+ticktime ROSA_sysGetTickCount()
 {
-	return 0;
+	return tickCount;
+}
+
+void ROSA_priv_incrementTickCount(ticktime val)
+{
+	tickCount=tickCount+val;
+	
 }
