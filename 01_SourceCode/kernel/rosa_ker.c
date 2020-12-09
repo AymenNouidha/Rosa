@@ -25,6 +25,7 @@
 /* Tab size: 4 */
 
 //Kernel includes
+#include <stdlib.h>
 #include "kernel/rosa_def.h"
 #include "kernel/rosa_ext.h"
 #include "kernel/rosa_ker.h"
@@ -36,6 +37,10 @@
 #include "drivers/led.h"
 #include "drivers/pot.h"
 #include "drivers/usart.h"
+/****************************************
+   PRIVATE PROTOTYPES
+******************************************/
+void _remove(tcb *tcbTask);
 
 /***********************************************************
  * TCBLIST
@@ -60,15 +65,15 @@ tcb * EXECTASK;
 * Comment:
 * Tracks the number of Tasks created and deleted
 **********************************************************/
-unsigned int taskNumber;
+static unsigned int taskNumber;
 
 /***********************************************************
-* taskNumber
+* sysStarted
 *
 * Comment:
 * Toggles when the system starts
 **********************************************************/
-static unsigned int sysStarted = 0;
+//static unsigned int sysStarted = 0;
 
 /***********************************************************
  * ROSA_init
@@ -109,18 +114,22 @@ void ROSA_init(void)
  **********************************************************/
 unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, unsigned int taskPrio, int * tcbStack, int tcbStackSize)
 {
+	
 	unsigned int statusVal = 0;
-	interruptDisable();
-	// Checks if TCB is already created
-	if(TCBLIST != NULL){
-		tcb * tcbTmp;
-		tcbTmp = TCBLIST;
-		while(tcbTmp != NULL){
-			if(tcbTmp == tcbTask){
+	
+	// Checks if TCB is already installed
+	// TCB can be recreated several times but its only when
+	// its installed then it is linked to the list
+	if(TCBLIST != NULL)
+	{
+		// Instead of iterating the whole list and comparing, we can 
+		// compare the state. NOTE: the state values the macros are given 
+		// random values see rosa_def.h 
+		
+		if(tcbTask->state == RUN || tcbTask->state == READY || tcbTask->state == DELAY)
+		{
 				statusVal = 3;
 				return statusVal;
-			}
-			tcbTmp = tcbTmp->nexttcb;
 		}
 	}
 	
@@ -130,7 +139,7 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 		return statusVal;
 	}
 	
-	
+	interruptDisable();
 	int i;
 
 	//Initialize the tcb with the correct values
@@ -141,6 +150,10 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
+	
+	// Set the task priority
+	tcbTask->priority = taskPrio;
+	
 
 	//Set the task function start and return address.
 	tcbTask->staddr = tcbFunction;
@@ -150,7 +163,7 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	tcbTask->datasize = tcbStackSize;
 	tcbTask->dataarea = tcbStack + tcbStackSize;
 	tcbTask->saveusp = tcbTask->dataarea;
-	//tcbTask->priority = taskPrio;
+
 
 	//Set the initial SR.
 	tcbTask->savesr = ROSA_INITIALSR;
@@ -173,24 +186,81 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
  **********************************************************/
 void ROSA_tcbInstall(tcb * tcbTask)
 {
-	tcb * tcbTmp;
+	//Checks if TCB is already installed
+	if(tcbTask->state == RUN || tcbTask->state == READY || tcbTask->state == DELAY)
+	{
+		return;
+	}
+	else
+	{
+		interruptDisable();
+		tcb * tcbTmp;
 
-	/* Is this the first tcb installed? */
-	if(TCBLIST == NULL) {
-		TCBLIST = tcbTask;
-		TCBLIST->nexttcb = tcbTask;			//Install the first tcb
-		TCBLIST->nexttcb = NULL;			
-	}
-	else {
-		tcbTmp = TCBLIST;					//Find last tcb in the list
-		while(tcbTmp->nexttcb != NULL) {
-			if(tcbTmp == tcbTask)
-				return;
-			tcbTmp = tcbTmp->nexttcb;
+		/* Is this the first tcb installed? */
+		if(TCBLIST == NULL)
+		{
+			//Install the first tcb
+			tcbTask->prevtcb = NULL;
+			tcbTask->nexttcb = NULL;
+			TCBLIST = tcbTask;			
 		}
-		tcbTmp->nexttcb = tcbTask;			//Install tcb last in the list
-		tcbTask->nexttcb = NULL;			
+		else 
+		{
+			tcbTmp = TCBLIST;
+			// Check current highest priority is compared to task priority
+			if(tcbTmp->priority < tcbTask->priority)
+			{
+				// If its smaller then assign task as current head
+				// new task prev to NULL
+				tcbTask->prevtcb = NULL;
+				tcbTask->nexttcb = tcbTmp;
+				// Replace TCBLIST previous with new tcbTask
+				tcbTmp->prevtcb = tcbTask;
+				// Move TCBLIST to the head
+				TCBLIST = tcbTask;
+				tcbTask->state = READY;
+				/* Checks for systemstarted(), if true, force a reschedule */
+				//if(systemstarted()){
+					// schedule();
+					//}
+				interruptEnable();
+				return;
+			}
+			
+			// Iterate until tcbTmp next is null and 
+			//Jump out of loop if tcbTmp not greater and equal to tcbTask priority NOT RUNNING PRIORITY 				
+			while(tcbTmp->nexttcb != NULL && tcbTmp->priority >= tcbTask->priority) 
+			{
+				// Update tcbTmp
+				tcbTmp = tcbTmp->nexttcb;
+			}
+			//Handle when task priority is greater
+			if(tcbTmp->priority < tcbTask->priority && tcbTmp != NULL)
+			{
+				// Insert tcbTask before tcbTmp 
+				tcbTask->prevtcb = tcbTmp->prevtcb;
+				// Assign nexttcb of tcbTask to tcbTmp
+				tcbTask->nexttcb = tcbTmp;
+				// Make prev of tcbTmp to tcbTask
+				tcbTmp->prevtcb->nexttcb = tcbTask;
+				tcbTmp->prevtcb = tcbTask;
+				
+			}
+			// Handle when tcbTmp is last in the list
+			if(tcbTmp->nexttcb == NULL)
+			{
+				// Make tcbTask last on the list
+				tcbTask->prevtcb = tcbTmp;			
+				tcbTask->nexttcb = NULL;
+				tcbTmp->nexttcb = tcbTask;	
+			}
+		
+			tcbTask->state = READY;
+			interruptEnable();
+			return;
+		}
 	}
+	
 }
 
 /***********************************************************
@@ -205,6 +275,71 @@ void ROSA_tcbInstall(tcb * tcbTask)
 
 unsigned int ROSA_tcbDelete(tcb *tcbTask)
 {
+
+	interruptDisable();
 	unsigned statusVal = 0;
+	
+	// Case 1: Handle if task is the executing task
+	if(tcbTask == EXECTASK)
+	{
+		_remove(tcbTask);
+		statusVal = 1;
+		interruptEnable();
+		return statusVal;
+	}
+	tcb *tcbTmp = TCBLIST;
+	// Case 2: Remove task from TCBLIST
+	// Traverse the list to search for tcbTask to delete
+	while(tcbTmp != NULL)
+	{
+		if(tcbTmp == tcbTask)
+		{
+			 _remove(tcbTmp);
+			 statusVal = 1;
+			 break;
+		}
+		tcbTmp = tcbTmp->nexttcb;
+	}
+	
+	
+	/* Case 3: Remove Task from IDLELIST
+	tcbTmp = IDLELIST;
+	while(tcbTmp != NULL)
+	{
+		if(tcbTmp == tcbTask)
+		{
+			_remove(tcbTmp);
+			break;
+		}
+		tcbTmp = tcbTmp->nexttcb;
+	}
+	*/
+	interruptEnable();
 	return statusVal;
+}
+
+void _remove(tcb *tcbTask)
+{
+	//Check if its the first task on queue
+	if(tcbTask->prevtcb == NULL)
+	{
+		// Update TCBLIST to the next on list
+		TCBLIST = tcbTask->nexttcb;
+	}
+	else
+	{
+		tcbTask->prevtcb->nexttcb = tcbTask->nexttcb;
+	}
+	// If there are more tasks on the list adjust tcbTask prev
+	if(tcbTask->nexttcb != NULL)
+	{
+		tcbTask->nexttcb->prevtcb = tcbTask->prevtcb;
+	}
+	
+	tcbTask->prevtcb = NULL;
+	tcbTask->nexttcb = NULL;
+	//free(tcbTask);
+	tcbTask = NULL;
+	taskNumber--;
+	
 }
