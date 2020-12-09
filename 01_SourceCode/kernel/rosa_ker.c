@@ -117,18 +117,19 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	
 	unsigned int statusVal = 0;
 	
-	// Checks if TCB is already created
+	// Checks if TCB is already installed
+	// TCB can be recreated several times but its only when
+	// its installed then it is linked to the list
 	if(TCBLIST != NULL)
 	{
-		//tcb * tcbTmp;
-		//tcbTmp = TCBLIST;
-		// Itereate list until last item on the list
-		//while(tcbTmp != NULL){
-			if(tcbTask->state == RUN || tcbTask->state == READY || tcbTask->state == DELAY){
+		// Instead of iterating the whole list and comparing, we can 
+		// compare the state. NOTE: the state values the macros are given 
+		// random values see rosa_def.h 
+		
+		if(tcbTask->state == RUN || tcbTask->state == READY || tcbTask->state == DELAY)
+		{
 				statusVal = 3;
 				return statusVal;
-			//}
-			//tcbTmp = tcbTmp->nexttcb;
 		}
 	}
 	
@@ -150,7 +151,7 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
 	
-	// Set the task priority and task state
+	// Set the task priority
 	tcbTask->priority = taskPrio;
 	
 
@@ -185,6 +186,7 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
  **********************************************************/
 void ROSA_tcbInstall(tcb * tcbTask)
 {
+	//Checks if TCB is already installed
 	if(tcbTask->state == RUN || tcbTask->state == READY || tcbTask->state == DELAY)
 	{
 		return;
@@ -217,12 +219,16 @@ void ROSA_tcbInstall(tcb * tcbTask)
 				// Move TCBLIST to the head
 				TCBLIST = tcbTask;
 				tcbTask->state = READY;
+				/* Checks for systemstarted(), if true, force a reschedule */
+				//if(systemstarted()){
+					// schedule();
+					//}
 				interruptEnable();
 				return;
 			}
 			
 			// Iterate until tcbTmp next is null and 
-			//Jump out of loop if greater and equal to tcbTask priority NOT RUNNING PRIORITY 				
+			//Jump out of loop if tcbTmp not greater and equal to tcbTask priority NOT RUNNING PRIORITY 				
 			while(tcbTmp->nexttcb != NULL && tcbTmp->priority >= tcbTask->priority) 
 			{
 				// Update tcbTmp
@@ -269,6 +275,7 @@ void ROSA_tcbInstall(tcb * tcbTask)
 
 unsigned int ROSA_tcbDelete(tcb *tcbTask)
 {
+
 	interruptDisable();
 	unsigned statusVal = 0;
 	
@@ -288,6 +295,7 @@ unsigned int ROSA_tcbDelete(tcb *tcbTask)
 		if(tcbTmp == tcbTask)
 		{
 			 _remove(tcbTmp);
+			 statusVal = 1;
 			 break;
 		}
 		tcbTmp = tcbTmp->nexttcb;
@@ -330,6 +338,8 @@ void _remove(tcb *tcbTask)
 	
 	tcbTask->prevtcb = NULL;
 	tcbTask->nexttcb = NULL;
-	taskNumber--;
 	//free(tcbTask);
+	tcbTask = NULL;
+	taskNumber--;
+	
 }
