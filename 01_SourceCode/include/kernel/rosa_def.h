@@ -36,9 +36,12 @@
 #endif
 
 #define MAXTASKNUMBER 20  //subject to change
-#define RUN 15
-#define READY 35
-#define DELAY 51
+
+#define DELETED 0
+#define RUN 2
+#define READY 4
+#define DELAY 8
+
 
 /***********************************************************
  * TCB block
@@ -60,9 +63,7 @@ typedef struct tcb_record_t {
 	int savesr;				//The current status register
 	int retaddr;			//The return address
 	int savereg[15];		//The CPU registers
-	struct tcb_record_t * prevtcb;
 	int priority;           //The fixed priority of the task
-	int runningPrio;        //The task running priority
 	int state;				//The state of the task
 	ticktime waketime;		//Wakeuptime for DELAYLIST
 } tcb;

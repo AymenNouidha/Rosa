@@ -15,11 +15,9 @@
 #include "stdint.h"
 #include "rosa_def.h"
 
-
-void ROSA_prv_extractTaskFromDELAYLIST(tcb * tcbTask);
-void ROSA_prv_insertTaskToDELAYLIST(tcb * tcbTask);
-int ROSA_prv_isTaskinDELAYLIST(tcb * tcbTask);
-int ROSA_prv_isTaskinList(tcb * tcbTask);
+int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask);
+int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask);
+int ROSA_prv_extractTaskFromLIST(tcb * tcbTask);
 
 
 #endif /* ROSA_UTILS_H_ */

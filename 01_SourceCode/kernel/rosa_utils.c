@@ -1,6 +1,6 @@
 /*
  * rosa_utils.c
- *
+ * This library is for the purpose of LIST HANDLING in the ROSA Kernel
  */ 
 
 #include "kernel/rosa_utils.h"
@@ -12,266 +12,281 @@
 #include "kernel/rosa_tim.h"
 #include "kernel/rosa_scheduler.h"
 
-//Driver includes
-#include "drivers/button.h"
-#include "drivers/led.h"
-#include "drivers/pot.h"
-#include "drivers/usart.h"
-
+//Maybe unneccessary, because of the state variable in the tcb
 /***********************************************************
- * isTaskinDELAYLIST
+ * ROSA_prv_isTaskinLIST
  *
  * Comment:
- * 	searches for a task in the delay list
+ * 	searches for a task in a specific list
  * 	
  * RETURNVALS:
- *	1 Yes
- *	0 No
+ *	1 Task is in specified List
+ *	0 Task was not found in the List
  **********************************************************/
-
-int ROSA_prv_isTaskinDELAYLIST(tcb * tcbTask)
-{	
-	tcb * tcbTmp;
-		
-	tcbTmp=DELAYLIST;
-	
-	while(tcbTmp!=NULL){
-	if(tcbTmp==tcbTask){
-		return 1;
-	}
-	
-	tcbTmp=tcbTmp->nexttcb;	
-	
-	}
-	return 0;
-	
-}
-
-/***********************************************************
- * isTaskinDELAYLIST
- *
- * Comment:
- * 	searches for a task in the delay list
- * 	
- * RETURNVALS:
- *	1 Yes
- *	0 No
- **********************************************************/
-
-int ROSA_prv_isTaskinTCBLIST(tcb * tcbTask)
-{	
-	tcb * tcbTmp;
-		
-	tcbTmp=TCBLIST;
-	
-	while(tcbTmp!=NULL){
-	if(tcbTmp==tcbTask){
-		return 1;
-	}
-	
-	tcbTmp=tcbTmp->nexttcb;	
-	
-	}
-	return 0;
-	
-}
-
-/***********************************************************
- * extractTaskFromTCBLIST
- *
- * Comment:
- * 	extracts a Task from the TCBLIST
- *
- **********************************************************/
-
-void ROSA_prv_extractTaskFromTCBLIST(tcb * tcbTask)
+/*ROSA_prv_isTaskinLIST(tcb * tcbTask, tcb* LIST)
 {
-	tcb * tcbTmp;
+	tcb * tmpTcb;
 	
-	if(ROSA_prv_isTaskinTCBLIST(tcbTask)){
-	if(tcbTask->prevtcb==NULL){
-		if(tcbTask->nexttcb==NULL){
-			TCBLIST=NULL;
-		}
-		else{
-			tcbTmp=tcbTask->nexttcb;
-			TCBLIST=tcbTask->nexttcb;
-			tcbTmp->prevtcb=NULL;
-		}
-		
-	}
-	else{
-		if(tcbTask->nexttcb==NULL){
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=NULL;
-		}
-		else{
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask->nexttcb;
-			tcbTmp=tcbTask->nexttcb;
-			tcbTask->prevtcb=tcbTmp->prevtcb;
+	tmpTcb=LIST;
+	
+	while(tmpTcb!=tcbTask)
+	{
+		tmpTcb=tmpTcb->nexttcb;
+		if(tmpTcb==NULL)
+		{
+			return 0; // TASK IS NOT IN THE LIST
 		}
 	}
 	
-	tcbTask->prevtcb=NULL;
-	tcbTask->nexttcb=NULL;
-	}
-	
-}
+	return 1; //TASK IS IN THE LIST
+}*/
+
+
 /***********************************************************
- * insertTaskToTCBLIST
+ * ROSA_prv_insertTaskToWAITINGLIST
+ *
+ * Comment:
+ * 	inserts a Task to the WAITINGLIST
+ * 	
+ * RETURNVALS:
+ *	1 Successfull
+ *	0 ERROR OCCURED (Task is already in List)
+ **********************************************************/
+int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
+{
+	if(WAITINGLIST==NULL)
+	{
+		tcbTask->nexttcb=NULL;
+		WAITINGLIST=tcbTask;
+		tcbTask->state=DELAY;
+		return 1;
+	}
+	if(tcbTask->state!=DELAY)
+	{
+		if(tcbTask->waketime<WAITINGLIST->waketime)
+		{
+			tcbTask->nexttcb=WAITINGLIST;
+			WAITINGLIST=tcbTask;
+			tcbTask->state=DELAY;
+			return 1;
+		}
+				
+		tcb * tmpTcb;
+		tcb * lstTmpTcb;
+
+		tmpTcb=WAITINGLIST;
+		
+		while(tmpTcb->waketime<=tcbTask->waketime&&tmpTcb!=NULL)
+		{
+			lstTmpTcb=tmpTcb;
+			tmpTcb=tmpTcb->nexttcb;
+		}
+		tcbTask->nexttcb=tmpTcb;
+		lstTmpTcb->nexttcb=tcbTask;
+		tcbTask->state=DELAY;
+		return 1;
+	}
+	return 0;
+
+}
+
+/***********************************************************
+ * ROSA_prv_insertTaskToTCBLIST
  *
  * Comment:
  * 	inserts a Task to the TCBLIST
- *
- **********************************************************/
-
-void ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
-{
-	
-	tcb * tcbTmp;
-	if(!ROSA_prv_isTaskinTCBLIST(tcbTask)){	
-	if(TCBLIST==NULL){
-		tcbTask->nexttcb=NULL;
-		tcbTask->prevtcb=NULL;
-		TCBLIST=tcbTask;
-	}
-	else{
-		tcbTmp=TCBLIST;
-		while((tcbTmp->runningpriority<=tcbTask->runningpriority)&&(tcbTmp!=NULL)){
-			tcbTask->prevtcb=tcbTmp;
-			tcbTmp=tcbTmp->nexttcb;
-		}
-		if(tcbTmp==NULL){
-			tcbTask->nexttcb=NULL;
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask;
-		}
-		else{
-			tcbTmp->prevtcb=tcbTask;
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask;
-		}
-	}
-	}
-	
-}
-
-/***********************************************************
- * extractTaskFromDELAYLIST
- *
- * Comment:
- * 	extracts a Task from the DELAYLIST
- *
- **********************************************************/
-
-void ROSA_prv_extractTaskFromDELAYLIST(tcb * tcbTask)
-{
-	tcb * tcbTmp;
-	
-	if(ROSA_prv_isTaskinDELAYLIST(tcbTask)){
-	if(tcbTask->prevtcb==NULL){
-		if(tcbTask->nexttcb==NULL){
-			DELAYLIST=NULL;
-		}
-		else{
-			tcbTmp=tcbTask->nexttcb;
-			DELAYLIST=tcbTask->nexttcb;
-			tcbTmp->prevtcb=NULL;
-		}
-		
-	}
-	else{
-		if(tcbTask->nexttcb==NULL){
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=NULL;
-		}
-		else{
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask->nexttcb;
-			tcbTmp=tcbTask->nexttcb;
-			tcbTask->prevtcb=tcbTmp->prevtcb;
-		}
-	}
-	
-	tcbTask->prevtcb=NULL;
-	tcbTask->nexttcb=NULL;
-	}
-	
-}
-
-
-/***********************************************************
- * insertTaskToDELAYLIST
- *
- * Comment:
- * 	inserts a Task to the DELAYLIST
- *
- **********************************************************/
-
-void ROSA_prv_insertTaskToDELAYLIST(tcb * tcbTask)
-{
-	
-	tcb * tcbTmp;
-	if(!ROSA_prv_isTaskinDELAYLIST(tcbTask)){	
-	if(DELAYLIST==NULL){
-		tcbTask->nexttcb=NULL;
-		tcbTask->prevtcb=NULL;
-		DELAYLIST=tcbTask;
-	}
-	else{
-		tcbTmp=DELAYLIST;
-		while((tcbTmp->waketime<=tcbTask->waketime)&&(tcbTmp!=NULL)){
-			tcbTask->prevtcb=tcbTmp;
-			tcbTmp=tcbTmp->nexttcb;
-		}
-		if(tcbTmp==NULL){
-			tcbTask->nexttcb=NULL;
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask;
-		}
-		else{
-			tcbTmp->prevtcb=tcbTask;
-			tcbTmp=tcbTask->prevtcb;
-			tcbTmp->nexttcb=tcbTask;
-		}
-	}
-	}
-	
-}
-
-
-
-/***********************************************************
- * findTaskInLists
- *
- * Comment:
- * 	searches for a task in all lists
  * 	
  * RETURNVALS:
- *	0 No List
- *  1 TCBLIST
- *	2 DELAYLIST
+ *	1 Successfull
+ *	0 ERROR OCCURED (Task is already in List)
  **********************************************************/
-
-int ROSA_prv_isTaskinList(tcb * tcbTask)
-{	
-	tcb * tcbTmp;
-		
-	tcbTmp=tcbTask;
-	
-	while(tcbTmp!=NULL){
-	if(tcbTmp==DELAYLIST){
-		return 2;
-	}
-	if(tcbTmp==TCBLIST){
+int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
+{
+	if(TCBLIST==NULL)
+	{
+		tcbTask->nexttcb=NULL;
+		TCBLIST=tcbTask;
+		tcbTask->state=READY;
 		return 1;
 	}
-	
-	tcbTmp=tcbTmp->prevtcb;	
-	
+		
+	if(tcbTask->state!=READY)
+	{
+		
+		if(tcbTask->priority>TCBLIST->priority)
+		{
+			tcbTask->nexttcb=TCBLIST;
+			TCBLIST=tcbTask;
+			tcbTask->state=READY;
+			return 1;
+		}
+				
+		tcb * tmpTcb;
+		tcb * lstTmpTcb;
+
+		tmpTcb=TCBLIST;
+		
+		while(tmpTcb->priority>=tcbTask->priority&&tmpTcb!=NULL)
+		{
+			lstTmpTcb=tmpTcb;
+			tmpTcb=tmpTcb->nexttcb;
+		}
+		tcbTask->nexttcb=tmpTcb;
+		lstTmpTcb->nexttcb=tcbTask;
+		tcbTask->state=READY;
+		return 1;
+	}
+	return 0;
+
+}
+
+
+/***********************************************************
+ * ROSA_prv_extractTaskFromLIST
+ *
+ * Comment:
+ * 	extracts a Task to the specified LIST
+ * 	
+ * RETURNVALS:
+ *	1 Successfull
+ *	0 ERROR OCCURED
+ **********************************************************/
+int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
+{
+	if(tcbTask->state!=DELETED)
+	{
+		if(tcbTask->state==READY)
+		{
+			if(tcbTask==TCBLIST)
+			{
+				TCBLIST=tcbTask->nexttcb;
+				tcbTask->state=DELETED;
+				tcbTask->nexttcb=NULL;
+				return 1;
+			}
+			
+			tcb * tmpTcb;
+
+			tmpTcb=TCBLIST;
+		
+			while(tmpTcb->nexttcb!=tcbTask)
+			{
+				tmpTcb=tmpTcb->nexttcb;
+			}
+			
+			tmpTcb->nexttcb=tcbTask->nexttcb;
+			tcbTask->nexttcb=NULL;
+			tcbTask->state=DELETED;
+			return 1;
+			
+			
+		}
+		else if(tcbTask->state==DELAY)
+		{
+			if(tcbTask==WAITINGLIST)
+			{
+				WAITINGLIST=tcbTask->nexttcb;
+				tcbTask->state=DELETED;
+				tcbTask->nexttcb=NULL;
+				return 1;
+			}
+			
+			tcb * tmpTcb;
+
+			tmpTcb=WAITINGLIST;
+		
+			while(tmpTcb->nexttcb!=tcbTask)
+			{
+				tmpTcb=tmpTcb->nexttcb;
+			}
+			
+			tmpTcb->nexttcb=tcbTask->nexttcb;
+			tcbTask->nexttcb=NULL;
+			tcbTask->state=DELETED;
+			return 1;
+			
+		}
+		
 	}
 	return 0;
 	
+	
+	
+	
+	
+	
+	
+	
+	
+	tcb* tmpTcb;
+	while(WAITINGLIST->waketime<=sysGetTickCount())
+	{
+		tmpTcb=WAITINGLIST;
+		ROSA_prv_extractTaskFromLIST(WAITINGLIST);
+		ROSA_prv_insertTaskToTCBLIST(tmpTcb);
+	}
+	
+	
+	delete Task;
+	
+	ROSA_prv_extractTaskFromLIST(&tcb);
+	
+	
+	if(TCBLIST==NULL)
+	{
+		tcbTask->nexttcb=NULL;
+		TCBLIST=tcbTask;
+		tcbTask->state=READY;
+		return 1;
+	}
+		
+	if(tcbTask->state!=READY)
+	{
+		
+		if(tcbTask->priority>TCBLIST->priority)
+		{
+			tcbTask->nexttcb=TCBLIST;
+			TCBLIST=tcbTask;
+			tcbTask->state=READY;
+			return 1;
+		}
+				
+		tcb * tmpTcb;
+		tcb * lstTmpTcb;
+
+		tmpTcb=TCBLIST;
+		
+		while(tmpTcb->priority>=tcbTask->priority&&tmpTcb!=NULL)
+		{
+			lstTmpTcb=tmpTcb;
+			tmpTcb=tmpTcb->nexttcb;
+		}
+		tcbTask->nexttcb=tmpTcb;
+		lstTmpTcb->nexttcb=tcbTask;
+		tcbTask->state=READY;
+		return 1;
+	}
+	return 0;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

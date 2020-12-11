@@ -18,9 +18,11 @@
 
 struct semaphore_handle
 {
-    bool isFree; //False if semaphore is locked. Initialize to true.
+    
+	bool isFree; //False if semaphore is locked. Initialize to true.
     int ceilPrio; //Initialize to semaphore's highest prio task.
     int storedPrio; //Stores the priority the locking task has now.
+	
 };
 
 //Creates a semaphore
