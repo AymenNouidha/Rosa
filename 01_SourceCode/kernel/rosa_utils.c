@@ -209,64 +209,6 @@ int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 		
 	}
 	return 0;
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	tcb* tmpTcb;
-	while(WAITINGLIST->waketime<=sysGetTickCount())
-	{
-		tmpTcb=WAITINGLIST;
-		ROSA_prv_extractTaskFromLIST(WAITINGLIST);
-		ROSA_prv_insertTaskToTCBLIST(tmpTcb);
-	}
-	
-	
-	delete Task;
-	
-	ROSA_prv_extractTaskFromLIST(&tcb);
-	
-	
-	if(TCBLIST==NULL)
-	{
-		tcbTask->nexttcb=NULL;
-		TCBLIST=tcbTask;
-		tcbTask->state=READY;
-		return 1;
-	}
-		
-	if(tcbTask->state!=READY)
-	{
-		
-		if(tcbTask->priority>TCBLIST->priority)
-		{
-			tcbTask->nexttcb=TCBLIST;
-			TCBLIST=tcbTask;
-			tcbTask->state=READY;
-			return 1;
-		}
-				
-		tcb * tmpTcb;
-		tcb * lstTmpTcb;
-
-		tmpTcb=TCBLIST;
-		
-		while(tmpTcb->priority>=tcbTask->priority&&tmpTcb!=NULL)
-		{
-			lstTmpTcb=tmpTcb;
-			tmpTcb=tmpTcb->nexttcb;
-		}
-		tcbTask->nexttcb=tmpTcb;
-		lstTmpTcb->nexttcb=tcbTask;
-		tcbTask->state=READY;
-		return 1;
-	}
-	return 0;
 
 }
 
