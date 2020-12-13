@@ -54,12 +54,29 @@ tcb* TCBLIST;
 tcb* EXECTASK;
 
 /***********************************************************
+ * DELAYLIST
+ *
+ * Comment:
+ * 	Global variables that contain the list of TCB's that
+ * 	have been put in a delay state
+ **********************************************************/
+tcb * WAITINGLIST;
+
+/***********************************************************
 * taskNumber
 *
 * Comment:
 * Tracks the number of Tasks created and deleted
 **********************************************************/
 static unsigned int taskNumber;
+
+/***********************************************************
+* tickCount
+*
+* Comment:
+* Tracks the number of Ticks
+**********************************************************/
+unsigned int tickCount;
 
 /***********************************************************
 * sysStarted
@@ -88,7 +105,9 @@ void ROSA_init(void)
 	//Start with empty TCBLIST and no EXECTASK.
 	TCBLIST = NULL;
 	EXECTASK = NULL;
+	WAITINGLIST = NULL;
 
+	tickCount = 0;
 	//Initialize the timer to 10 ms period.
 	timerInit(10);
 	//Start the timer

@@ -26,6 +26,7 @@
 
 #include "rosa_config.h"
 #include "drivers/delay.h"
+#include "kernel/rosa_ker.h"
 #include "kernel/rosa_int.h"
 #include "kernel/rosa_utils.h"
 
@@ -45,11 +46,22 @@ __attribute__((__interrupt__))
 void timerISR(void)
 {
 	int sr;
+	tcb* temp, extr;
 	volatile avr32_tc_t * tc = &AVR32_TC;
-
 	//Read the timer status register to determine if this is a valid interrupt
 	sr = tc->channel[0].sr;
-	if(sr & AVR32_TC_CPCS_MASK)
+	if(sr & AVR32_TC_CPCS_MASK){
+		tickCount++;
+		if(WAITINGLIST){
+      temp = WAITINGLIST;
+			while(temp->waketime <= tickCount){
+					if(ROSA_prv_extractTaskFromLIST(temp)){
+            ROSA_prv_insertTaskToTCBLIST(temp);
+					  temp = WAITINGLIST;
+          }
+			}
+		}
+	}
 		ROSA_yieldFromISR();
 }
 

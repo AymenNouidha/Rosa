@@ -36,12 +36,11 @@
  **********************************************************/
 void scheduler(void)
 {
-	if(EXECTASK->nexttcb == NULL){
-		EXECTASK = TCBLIST;
-		return;
+	if(TCBLIST && TCBLIST->priority > EXECTASK->priority){
+		EXECTASK->state = READY;
+    ROSA_prv_insertTaskToTCBLIST(EXECTASK);
+		dispatch();
 	}
-	//Find the next task to execute
-	EXECTASK = EXECTASK->nexttcb;
 }
 
 /***********************************************************
@@ -51,5 +50,10 @@ void scheduler(void)
  *	Assigns the CPU to the first ready task
  **********************************************************/
 void dispatch(void){
-	
+	tcb* temp;
+  temp = TCBLIST;
+	if(extractTaskFromTCBLIST(temp)){
+    temp->state = RUN;
+		EXECTASK = temp;
+  }	
 }
