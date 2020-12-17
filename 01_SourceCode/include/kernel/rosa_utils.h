@@ -1,15 +1,13 @@
-
 /*
  * rosa_utils.h
  *
- * Created: 06.12.2020 14:25:32
- *  Author: lukas
+ * Created: 14/12/2020 18:22:24
+ *  Author: victo
  */ 
 
 
 #ifndef ROSA_UTILS_H_
 #define ROSA_UTILS_H_
-
 
 #include <avr32/io.h>
 #include "stdint.h"

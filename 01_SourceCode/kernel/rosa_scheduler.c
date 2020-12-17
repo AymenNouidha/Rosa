@@ -25,7 +25,45 @@
 /* Tab size: 4 */
 
 #include "kernel/rosa_scheduler.h"
+#include "kernel/rosa_utils.h"
+#include "kernel/rosa_int.h"
 
+static bool _started = false;
+
+bool systemStarted(){
+	return _started;
+}
+/***********************************************************
+ * scheduler
+ *
+ * Comment:
+ * 	Minimalistic scheduler for round robin task switch.
+ * 	This scheduler choose the next task to execute by looking
+ * 	at the nexttcb of the current running task.
+ **********************************************************/
+/*void scheduler(void)
+{
+	//Find the next task to execute
+	EXECTASK = EXECTASK->nexttcb;
+}*/
+
+/***********************************************************
+ * dispatch
+ *
+ * Comment:
+ *	Assigns the CPU to the first ready task
+ **********************************************************/
+void dispatch(void){
+	tcb* temp;
+	temp = TCBLIST;
+	
+	if(ROSA_prv_extractTaskFromLIST(temp)){
+		temp->state = RUN;
+		temp->nexttcb = NULL;
+		EXECTASK = temp;
+		//interruptEnable();
+  }	
+}
 /***********************************************************
  * scheduler
  *
@@ -36,20 +74,23 @@
  **********************************************************/
 void scheduler(void)
 {
-	if(EXECTASK->nexttcb == NULL){
-		EXECTASK = TCBLIST;
-		return;
+	interruptDisable();
+	if(EXECTASK->state == DELAY){
+		dispatch();
 	}
-	//Find the next task to execute
-	EXECTASK = EXECTASK->nexttcb;
+	else if(TCBLIST!=NULL && TCBLIST->priority > EXECTASK->priority){
+		//EXECTASK->state = READY;
+    ROSA_prv_insertTaskToTCBLIST(EXECTASK);
+		dispatch();
+	}
+	interruptEnable();
+	
 }
 
-/***********************************************************
- * dispatch
- *
- * Comment:
- *	Assigns the CPU to the first ready task
- **********************************************************/
-void dispatch(void){
+void ROSA_schedulerStart(void)
+{
+	_started = true;
+	timerStart();
+	ROSA_start();
 	
 }

@@ -27,7 +27,6 @@
 #ifndef rosa_def_H_
 #define rosa_def_H_
 
-
 #include "rosa_config.h"
 #include "rosa_tim.h"
 
@@ -37,11 +36,10 @@
 
 #define MAXTASKNUMBER 20  //subject to change
 
-#define DELETED 0
+#define DELETED 16
 #define RUN 2
 #define READY 4
 #define DELAY 8
-
 
 /***********************************************************
  * TCB block
@@ -52,7 +50,7 @@
  *
  **********************************************************/
 typedef struct tcb_record_t {
-	struct tcb_record_t * nexttcb;	
+	struct tcb_record_t * nexttcb;
 	char id[NAMESIZE];		//The task id/name
 	void (*staddr) (void);	//Start address
 	int *dataarea;			//The stack data area

@@ -38,7 +38,7 @@
  **********************************************************/
 void scheduler(void);
 
-// Assigns the CPU to the first ready task
 void dispatch(void);
-
+void ROSA_schedulerStart(void);
+bool systemStarted();
 #endif /* _scheduler_H_ */

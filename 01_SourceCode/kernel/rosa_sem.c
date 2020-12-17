@@ -5,6 +5,8 @@
 //Kernel includes
 #include "kernel/rosa_ker.h"
 #include "kernel/rosa_sem.h"
+#include "kernel/rosa_int.h"
+#include "kernel/rosa_tim.h"
 
 /***********************************************************
  * ROSA_semaphoreCreate
@@ -14,10 +16,14 @@
  * Return : semaphoreHandle
  *			The handle of the newly created semaphore
  **********************************************************/
-semaphoreHandle semaphoreCreate(int priorityCeiling)
+semaphore_handle ROSA_semaphoreCreate(int priorityCeiling)
 {
-	semaphoreHandle sem = {.isFree = true; .ceilPrio = priorityCeiling};
-    return sem;
+	semaphore_handle sem ;
+	sem.isFree=true;
+	sem.ceilPrio=priorityCeiling+1;
+	sem.storedPrio=0;
+	//= {.isFree = true; .ceilPrio = priorityCeiling;.storedPrio=0};
+	return sem;
 }
 
 //TODO: Replace runningPrio with whatever the actual name is!
@@ -32,21 +38,22 @@ semaphoreHandle semaphoreCreate(int priorityCeiling)
  *		   1 - semaphore is taken
  *        -1 - for errors
  **********************************************************/
-int semaphoreTake(semaphoreHandle* semaphore, uint_32 waitTime)
+int ROSA_semaphoreTake(semaphore_handle* semaphore, uint32_t waitTime)
 {
-	interruptDisable(void);
+	interruptDisable();
 	if (semaphore->isFree == true)
 	{
 		semaphore->isFree = false;
-		semaphore->storedPrio = EXECTASK->runningPrio;
-		if (semaphore->ceiling > EXECTASK->runningPrio)
-			EXECTASK->runningPrio = semaphore->ceiling;
-		interruptEnable(void);
+		semaphore->storedPrio = EXECTASK->priority;
+		if (semaphore->ceilPrio > EXECTASK->priority)
+			EXECTASK->priority = semaphore->ceilPrio;
+		interruptEnable();
 		return 1;
 	}
-	interruptEnable(void);
+	
 	else
 	{
+		interruptEnable();
 		if (waitTime == 0)
 		{
 			return 0;
@@ -56,6 +63,7 @@ int semaphoreTake(semaphoreHandle* semaphore, uint_32 waitTime)
 			ROSA_sysTickWait(waitTime);
 			return ROSA_semaphoreTake(semaphore, 0);
 		}
+		//interruptEnable();
 	}
 }
 
@@ -68,17 +76,17 @@ int semaphoreTake(semaphoreHandle* semaphore, uint_32 waitTime)
  *         0 - for errors
  *		   1 - semaphore is released
  **********************************************************/
-int semaphoreGive(semaphoreHandle* semaphore)
+int ROSA_semaphoreGive(semaphore_handle* semaphore)
 {
-	interruptDisable(void);
-    if (semphor->isFree == false)
-    {
-		EXECTASK->runningPrio = semaphore->storedPrio;
-        semaphore->isFree = true;
-        interruptEnable(void);
-        return 1;
-    }
-    interruptEnable(void);
-    else
-        return 0;
+	interruptDisable();
+	if (semaphore->isFree == false)
+	{
+		EXECTASK->priority = semaphore->storedPrio;
+		semaphore->isFree = true;
+		interruptEnable();
+		return 1;
+	}
+	
+	interruptEnable();
+	return 0;
 }

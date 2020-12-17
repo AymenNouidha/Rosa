@@ -35,8 +35,6 @@
 typedef uint32_t ticktime;
 #define MAX_TICK_TIME 4294967295
 
-
-
 /***********************************************************
  * Kernel timer functions
  ***********************************************************/
@@ -54,20 +52,18 @@ int timerPeriodSet(unsigned int ms);
 extern void timerPrescaleSet(int);
 extern void timerRCSet(int);
 
-//Absolute delay
-void ROSA_sysTickWaitUntil(unsigned int *previousWakeTime, unsigned int timeIncrement);
-
-//Relative Delay
-void ROSA_sysTickWait(unsigned int ticksToWait);
-
-
 //Timer period variables
 extern int timerPrescale;
 extern int timerRC;
 
+
 // User API functions
 ticktime ROSA_sysGetTickCount();
-void ROSA_priv_incrementTickCount(ticktime val);
 
+//Absolute delay
+void ROSA_sysTickWaitUntil(ticktime *previousWakeTime, ticktime timeIncrement);
+
+//Relative Delay
+void ROSA_sysTickWait(ticktime ticksToWait);
 
 #endif /* _ROSA_TIMER_H_ */

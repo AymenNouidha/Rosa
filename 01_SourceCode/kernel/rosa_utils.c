@@ -11,6 +11,7 @@
 #include "kernel/rosa_ker.h"
 #include "kernel/rosa_tim.h"
 #include "kernel/rosa_scheduler.h"
+#include "kernel/rosa_int.h"
 
 //Maybe unneccessary, because of the state variable in the tcb
 /***********************************************************
@@ -54,38 +55,57 @@
  **********************************************************/
 int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 {
-	if(WAITINGLIST==NULL)
+	interruptDisable();
+	if(tcbTask==NULL)
 	{
-		tcbTask->nexttcb=NULL;
-		WAITINGLIST=tcbTask;
-		tcbTask->state=DELAY;
+		interruptEnable();
 		return 1;
 	}
-	if(tcbTask->state!=DELAY)
+	// Startup exception
+	if(EXECTASK == TCBLIST)
 	{
-		if(tcbTask->waketime<WAITINGLIST->waketime)
+		tcb * tmpTcb=TCBLIST;
+		ROSA_prv_extractTaskFromLIST(tmpTcb);
+		tmpTcb->state=RUN;
+
+		
+	}
+	if(WAITINGLIST==NULL)
+	{
+		tcbTask->nexttcb = NULL;
+		WAITINGLIST = tcbTask;
+		tcbTask->state = DELAY;
+		interruptEnable();
+		return 1;
+	}
+	if(tcbTask->state != DELAY)
+	{
+		if(tcbTask->waketime < WAITINGLIST->waketime)
 		{
-			tcbTask->nexttcb=WAITINGLIST;
-			WAITINGLIST=tcbTask;
-			tcbTask->state=DELAY;
+			tcbTask->nexttcb = WAITINGLIST;
+			WAITINGLIST = tcbTask;
+			tcbTask->state = DELAY;
+			interruptEnable();
 			return 1;
 		}
 				
 		tcb * tmpTcb;
 		tcb * lstTmpTcb;
 
-		tmpTcb=WAITINGLIST;
+		tmpTcb = WAITINGLIST;
 		
-		while(tmpTcb->waketime<=tcbTask->waketime&&tmpTcb!=NULL)
+		while(tmpTcb->waketime <= tcbTask->waketime && tmpTcb != NULL)
 		{
-			lstTmpTcb=tmpTcb;
-			tmpTcb=tmpTcb->nexttcb;
+			lstTmpTcb = tmpTcb;
+			tmpTcb = tmpTcb->nexttcb;
 		}
-		tcbTask->nexttcb=tmpTcb;
-		lstTmpTcb->nexttcb=tcbTask;
-		tcbTask->state=DELAY;
+		tcbTask->nexttcb = tmpTcb;
+		lstTmpTcb->nexttcb = tcbTask;
+		tcbTask->state = DELAY;
+		interruptEnable();
 		return 1;
 	}
+	interruptEnable();
 	return 0;
 
 }
@@ -102,40 +122,57 @@ int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
  **********************************************************/
 int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
 {
-	if(TCBLIST==NULL)
+	interruptDisable();
+	if(tcbTask==NULL)
 	{
-		tcbTask->nexttcb=NULL;
-		TCBLIST=tcbTask;
-		tcbTask->state=READY;
+		interruptEnable();
 		return 1;
 	}
-		
-	if(tcbTask->state!=READY)
+	if(TCBLIST == NULL)
+	{
+		tcbTask->nexttcb = NULL;
+		tcbTask->state = READY;
+		TCBLIST = tcbTask;
+		interruptEnable();
+		return 1;
+	}
+	// Startup exception
+	if(EXECTASK == TCBLIST)
+	{
+		tcb * tmpTcb=TCBLIST;
+		ROSA_prv_extractTaskFromLIST(tmpTcb);
+		tmpTcb->state=RUN;
+	}
+	if(tcbTask->state != READY)
 	{
 		
-		if(tcbTask->priority>TCBLIST->priority)
+		if(tcbTask->priority > TCBLIST->priority)
 		{
-			tcbTask->nexttcb=TCBLIST;
-			TCBLIST=tcbTask;
-			tcbTask->state=READY;
+			tcbTask->nexttcb = TCBLIST;
+			TCBLIST = tcbTask;
+			tcbTask->state = READY;
+			interruptEnable();
 			return 1;
 		}
 				
 		tcb * tmpTcb;
-		tcb * lstTmpTcb;
-
-		tmpTcb=TCBLIST;
 		
-		while(tmpTcb->priority>=tcbTask->priority&&tmpTcb!=NULL)
+
+		tmpTcb = TCBLIST;
+		tcb * lstTmpTcb;
+		
+		while(tcbTask->priority <= tmpTcb->priority && tmpTcb != NULL)
 		{
-			lstTmpTcb=tmpTcb;
-			tmpTcb=tmpTcb->nexttcb;
+			lstTmpTcb = tmpTcb;
+			tmpTcb = tmpTcb->nexttcb;
 		}
-		tcbTask->nexttcb=tmpTcb;
-		lstTmpTcb->nexttcb=tcbTask;
-		tcbTask->state=READY;
+		tcbTask->nexttcb = tmpTcb;
+		lstTmpTcb->nexttcb = tcbTask;
+		tcbTask->state = READY;
+		interruptEnable();
 		return 1;
 	}
+	interruptEnable();
 	return 0;
 
 }
@@ -153,70 +190,75 @@ int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
  **********************************************************/
 int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 {
-	if(tcbTask->state!=DELETED)
+	interruptDisable();
+	if(tcbTask->state != DELETED)
 	{
-		if(tcbTask->state==READY)
+		if(tcbTask->state == READY)
 		{
-			if(tcbTask==TCBLIST)
+			if(tcbTask == TCBLIST)
 			{
-				TCBLIST=tcbTask->nexttcb;
-				tcbTask->state=DELETED;
-				tcbTask->nexttcb=NULL;
+				TCBLIST = TCBLIST->nexttcb;
+				tcbTask->state = DELETED;
+				tcbTask->nexttcb = NULL;
+				interruptEnable();
 				return 1;
 			}
 			
 			tcb * tmpTcb;
 
-			tmpTcb=TCBLIST;
+			tmpTcb = TCBLIST;
 		
-			while(tmpTcb->nexttcb!=tcbTask)
+			while(tmpTcb->nexttcb != tcbTask)
 			{
-				tmpTcb=tmpTcb->nexttcb;
+				tmpTcb = tmpTcb->nexttcb;
 			}
 			
-			tmpTcb->nexttcb=tcbTask->nexttcb;
-			tcbTask->nexttcb=NULL;
-			tcbTask->state=DELETED;
+			tmpTcb->nexttcb = tcbTask->nexttcb;
+			tcbTask->nexttcb = NULL;
+			tcbTask->state = DELETED;
+			interruptEnable();
 			return 1;
 			
 			
 		}
-		else if(tcbTask->state==DELAY)
+		else if(tcbTask->state == DELAY)
 		{
-			if(tcbTask==WAITINGLIST)
+			if(tcbTask == WAITINGLIST)
 			{
-				WAITINGLIST=tcbTask->nexttcb;
-				tcbTask->state=DELETED;
-				tcbTask->nexttcb=NULL;
+				WAITINGLIST = tcbTask->nexttcb;
+				tcbTask->state = DELETED;
+				tcbTask->nexttcb = NULL;
+				interruptEnable();
 				return 1;
 			}
 			
 			tcb * tmpTcb;
 
-			tmpTcb=WAITINGLIST;
+			tmpTcb = WAITINGLIST;
 		
 			while(tmpTcb->nexttcb!=tcbTask)
 			{
-				tmpTcb=tmpTcb->nexttcb;
+				tmpTcb = tmpTcb->nexttcb;
 			}
 			
-			tmpTcb->nexttcb=tcbTask->nexttcb;
-			tcbTask->nexttcb=NULL;
-			tcbTask->state=DELETED;
+			tmpTcb->nexttcb = tcbTask->nexttcb;
+			tcbTask->nexttcb = NULL;
+			tcbTask->state = DELETED;
+			interruptEnable();
 			return 1;
 			
 		}
 		
 	}
+	interruptEnable();
 	return 0;
-
+	
 }
-
-
-
-
-
-
+	
+	
+	
+	
+	
 
 
 

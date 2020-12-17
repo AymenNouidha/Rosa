@@ -27,8 +27,11 @@
 #ifndef _ROSA_CONFIG_H_
 #define _ROSA_CONFIG_H_
 
+#include <stdbool.h>
 #include <avr32/io.h>
+
 #include "drivers/debug.h"
+
 
 //Maximum number of chars in the task id (the task name)
 #define NAMESIZE 4

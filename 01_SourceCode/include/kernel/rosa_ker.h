@@ -28,19 +28,22 @@
 #define _ROSA_KER_H_
 
 #include "rosa_def.h"
+#include "kernel/rosa_scheduler.h"
 
 /***********************************************************
  * Global variables
  ***********************************************************/
 extern tcb * TCBLIST;
 extern tcb * EXECTASK;
-
+extern tcb * WAITINGLIST;
 
 /***********************************************************
  * Kernel low level context switch functions
  ***********************************************************/
 extern void ROSA_contextInit(tcb * tcbTask);
 extern void ROSA_yield(void);
+extern void Rosa_contextSave(void);
+extern void Rosa_contextRestore(void);
 
 
 /***********************************************************
@@ -65,8 +68,6 @@ __attribute__((__interrupt__)) extern void timerISR(void);
 //Initialize the kernel
 void ROSA_init(void);
 unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunction, unsigned int taskPrio, int * tcbStack, int tcbStackSize);
-
-//Removes task from kernel
 unsigned int ROSA_tcbDelete(tcb *tcbTask);
 
 //Install a new task TCB into ROSA

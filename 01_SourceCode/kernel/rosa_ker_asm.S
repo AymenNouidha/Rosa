@@ -41,6 +41,8 @@
 	.global contextInit
 	.global ROSA_start
 	.global ROSA_yield
+	.global Rosa_contextRestore
+	.global Rosa_contextSave
 
 /*********************************************************
 * ROSA_start kernel code
@@ -106,7 +108,6 @@ contextInit:
 	//~ call timerStart
 	//~ call interruptEnable
 	//~ popm lr
-
 
 	//Initialize regs to zero
 	mov r0,0x0
@@ -176,7 +177,6 @@ contextSave:
 	//Fetch the current executing task
 	lda.w r12,EXECTASK
 	ld.w r12,r12[0x0]
-
 
 	//Save work registers to TCB
 	st.w r12[TCB.SAVER0],r0
@@ -271,6 +271,41 @@ contextRestore:
 *********************************************************/
 //Note most kernel functions are located in other source files.
 /*********************************************************
+* Rosa_contextSave
+*
+* Comment:
+* 	scall helper functions, called from user mode and
+* 	transfer control to supervisor mode
+* 	They are used for saving context.
+*
+*********************************************************/
+
+Rosa_contextSave:
+	pushm lr
+	lda.w lr,_contxt
+	//Enter supervisor mode
+	scall
+_contxt:
+	call contextSave
+	
+/*********************************************************
+* Rosa_contextRestore
+*
+* Comment:
+* 	scall helper functions, called from user mode and
+* 	transfer control to supervisor mode
+* 	They are used for restoring context.
+*
+*********************************************************/	
+
+Rosa_contextRestore:
+	pushm lr
+	lda.w lr,_restore
+	//Enter supervisor mode
+	scall
+_restore:
+	call contextRestore
+/*********************************************************
 * ROSA_yield
 *
 * Comment:
@@ -279,6 +314,7 @@ contextRestore:
 * 	They are used for context switching.
 *
 *********************************************************/
+
 ROSA_yield:
 	pushm lr
 	lda.w lr,_yield
