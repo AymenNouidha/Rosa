@@ -29,6 +29,7 @@
 #include "kernel/rosa_ext.h"
 #include "kernel/rosa_ker.h"
 #include "kernel/rosa_tim.h"
+#include "kernel/rosa_sem.h"
 
 #include "kernel/rosa_utils.h"
 
@@ -181,6 +182,8 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
 	
+	tcbTask->lastsem = NULL;
+	
 	// Set the task priority
 	tcbTask->priority = taskPrio+1;
 	
@@ -260,6 +263,13 @@ unsigned int ROSA_tcbDelete(tcb* tcbTask)
 
 	//interruptDisable();
 	unsigned statusVal = 0;
+	semaphore_handle* nextsemaphore = tcbTask->lastsem;
+	while(nextsemaphore != NULL)
+	{
+		nextsemaphore->isFree = true;
+		nextsemaphore->storedPrio = 0;
+		nextsemaphore = nextsemaphore->nextsem;
+	}
 	if(EXECTASK==tcbTask){
 		// Set task state to deleted
 		tcbTask->state = DELETED;
