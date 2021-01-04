@@ -13,35 +13,6 @@
 #include "kernel/rosa_scheduler.h"
 #include "kernel/rosa_int.h"
 
-//Maybe unneccessary, because of the state variable in the tcb
-/***********************************************************
- * ROSA_prv_isTaskinLIST
- *
- * Comment:
- * 	searches for a task in a specific list
- * 	
- * RETURNVALS:
- *	1 Task is in specified List
- *	0 Task was not found in the List
- **********************************************************/
-/*ROSA_prv_isTaskinLIST(tcb * tcbTask, tcb* LIST)
-{
-	tcb * tmpTcb;
-	
-	tmpTcb=LIST;
-	
-	while(tmpTcb!=tcbTask)
-	{
-		tmpTcb=tmpTcb->nexttcb;
-		if(tmpTcb==NULL)
-		{
-			return 0; // TASK IS NOT IN THE LIST
-		}
-	}
-	
-	return 1; //TASK IS IN THE LIST
-}*/
-
 
 /***********************************************************
  * ROSA_prv_insertTaskToWAITINGLIST
@@ -56,20 +27,22 @@
 int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 {
 	interruptDisable();
+	// If the task to install is NULL then just return
 	if(tcbTask==NULL)
 	{
 		interruptEnable();
 		return 1;
 	}
-	// Startup exception
+	// Startup exception for removing the first executing task which is assigned twice (in EXECTASK AND TCBLIST)
 	if(EXECTASK == TCBLIST)
 	{
 		tcb * tmpTcb=TCBLIST;
 		ROSA_prv_extractTaskFromLIST(tmpTcb);
 		tmpTcb->state=RUN;
 
-		
 	}
+	
+	// If the waitinglist is empty install the task as the first element
 	if(WAITINGLIST==NULL)
 	{
 		tcbTask->nexttcb = NULL;
@@ -78,8 +51,12 @@ int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 		interruptEnable();
 		return 1;
 	}
+	
+	// When the task is not in the delay list sort the task in there
 	if(tcbTask->state != DELAY)
-	{
+	{ 
+		// Sort the task regarding the wake up times
+		// If the task needs to be the first element in the list insert and return
 		if(tcbTask->waketime < WAITINGLIST->waketime)
 		{
 			tcbTask->nexttcb = WAITINGLIST;
@@ -88,12 +65,13 @@ int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 			interruptEnable();
 			return 1;
 		}
-				
+		
 		tcb * tmpTcb;
 		tcb * lstTmpTcb;
 
 		tmpTcb = WAITINGLIST;
 		
+		// Iterate through the list an insert task (when same waketimes, insert last)
 		while(tmpTcb->waketime <= tcbTask->waketime && tmpTcb != NULL)
 		{
 			lstTmpTcb = tmpTcb;
@@ -105,6 +83,8 @@ int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 		interruptEnable();
 		return 1;
 	}
+	
+	
 	interruptEnable();
 	return 0;
 
@@ -123,11 +103,13 @@ int ROSA_prv_insertTaskToWAITINGLIST(tcb * tcbTask)
 int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
 {
 	interruptDisable();
+	// If the task to install is NULL then just return
 	if(tcbTask==NULL)
 	{
 		interruptEnable();
 		return 1;
 	}
+	// If the readylist is empty install the task as the first element
 	if(TCBLIST == NULL)
 	{
 		tcbTask->nexttcb = NULL;
@@ -136,16 +118,20 @@ int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
 		interruptEnable();
 		return 1;
 	}
-	// Startup exception
+	// Startup exception for removing the first executing task which is assigned twice (in EXECTASK AND TCBLIST)
 	if(EXECTASK == TCBLIST)
 	{
 		tcb * tmpTcb=TCBLIST;
 		ROSA_prv_extractTaskFromLIST(tmpTcb);
 		tmpTcb->state=RUN;
 	}
+	
+	// When the task is not in the ready list sort the task in there
 	if(tcbTask->state != READY)
 	{
-		
+	
+		// Sort the task regarding the priorities
+		// If the task needs to be the first element in the list insert and return
 		if(tcbTask->priority > TCBLIST->priority)
 		{
 			tcbTask->nexttcb = TCBLIST;
@@ -161,6 +147,7 @@ int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
 		tmpTcb = TCBLIST;
 		tcb * lstTmpTcb;
 		
+		// Iterate through the list an insert task (when same priorities, insert last)
 		while(tcbTask->priority <= tmpTcb->priority && tmpTcb != NULL)
 		{
 			lstTmpTcb = tmpTcb;
@@ -182,7 +169,7 @@ int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
  * ROSA_prv_extractTaskFromLIST
  *
  * Comment:
- * 	extracts a Task to the specified LIST
+ * 	extracts a Task from the List where it is in
  * 	
  * RETURNVALS:
  *	1 Successfull
@@ -191,10 +178,13 @@ int ROSA_prv_insertTaskToTCBLIST(tcb * tcbTask)
 int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 {
 	interruptDisable();
+	// When the task is in a list the check in which list and delete
 	if(tcbTask->state != DELETED)
 	{
+		// when the task is in the ready list
 		if(tcbTask->state == READY)
 		{
+			// when the task is the first element, extract and set LISTHANDLER to the next task
 			if(tcbTask == TCBLIST)
 			{
 				TCBLIST = TCBLIST->nexttcb;
@@ -207,7 +197,8 @@ int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 			tcb * tmpTcb;
 
 			tmpTcb = TCBLIST;
-		
+			
+			//Iterate through the list and remove the task
 			while(tmpTcb->nexttcb != tcbTask)
 			{
 				tmpTcb = tmpTcb->nexttcb;
@@ -221,8 +212,10 @@ int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 			
 			
 		}
+		//when the task is in the delaylist
 		else if(tcbTask->state == DELAY)
 		{
+			// when the task is the first element, extract and set LISTHANDLER to the next task
 			if(tcbTask == WAITINGLIST)
 			{
 				WAITINGLIST = tcbTask->nexttcb;
@@ -235,7 +228,8 @@ int ROSA_prv_extractTaskFromLIST(tcb * tcbTask)
 			tcb * tmpTcb;
 
 			tmpTcb = WAITINGLIST;
-		
+			
+			//Iterate through the list and remove the task
 			while(tmpTcb->nexttcb!=tcbTask)
 			{
 				tmpTcb = tmpTcb->nexttcb;

@@ -16,17 +16,18 @@
  * Return : semaphoreHandle
  *			The handle of the newly created semaphore
  **********************************************************/
-semaphore_handle ROSA_semaphoreCreate(int priorityCeiling)
+semaphoreHandle ROSA_semaphoreCreate(int priorityCeiling)
 {
-	semaphore_handle sem ;
+	// set variables of the SCB to initial values
+	semaphoreHandle sem;
 	sem.isFree=true;
+	//Set the ceiling of the semaphore (and increase by one caused by idle task prio protection)
 	sem.ceilPrio=priorityCeiling+1;
 	sem.storedPrio=0;
-	//= {.isFree = true; .ceilPrio = priorityCeiling;.storedPrio=0};
+	sem.nextsem = NULL;
+	//return handler to the semaphore
 	return sem;
 }
-
-//TODO: Replace runningPrio with whatever the actual name is!
 
 /***********************************************************
  * ROSA_semaphoreTake
@@ -38,19 +39,27 @@ semaphore_handle ROSA_semaphoreCreate(int priorityCeiling)
  *		   1 - semaphore is taken
  *        -1 - for errors
  **********************************************************/
-int ROSA_semaphoreTake(semaphore_handle* semaphore, uint32_t waitTime)
+int ROSA_semaphoreTake(semaphoreHandle* semaphore, uint32_t waitTime)
 {
 	interruptDisable();
+	// when the semaphore is free take it
 	if (semaphore->isFree == true)
 	{
+		//set the status to taken
 		semaphore->isFree = false;
+		//store previous priority of the taking Task
 		semaphore->storedPrio = EXECTASK->priority;
+		//adapt the Task priority (IPCP)
 		if (semaphore->ceilPrio > EXECTASK->priority)
 			EXECTASK->priority = semaphore->ceilPrio;
+		//add sem to the sem list of the task
+		semaphore->nextsem = EXECTASK->lastsem;
+		EXECTASK->lastsem = semaphore;
 		interruptEnable();
 		return 1;
 	}
 	
+	// when the semaphore is not free, then try to take again after the waiting time
 	else
 	{
 		interruptEnable();
@@ -60,11 +69,12 @@ int ROSA_semaphoreTake(semaphore_handle* semaphore, uint32_t waitTime)
 		}
 		else
 		{
+			//Set the task to the waininglist for the given amount of time
 			ROSA_sysTickWait(waitTime);
 			return ROSA_semaphoreTake(semaphore, 0);
 		}
-		//interruptEnable();
 	}
+	return -1;
 }
 
 /***********************************************************
@@ -76,13 +86,26 @@ int ROSA_semaphoreTake(semaphore_handle* semaphore, uint32_t waitTime)
  *         0 - for errors
  *		   1 - semaphore is released
  **********************************************************/
-int ROSA_semaphoreGive(semaphore_handle* semaphore)
+int ROSA_semaphoreGive(semaphoreHandle* semaphore)
 {
 	interruptDisable();
+	// check whether semaphore was taken
 	if (semaphore->isFree == false)
 	{
+		//Reset the priority of the task
 		EXECTASK->priority = semaphore->storedPrio;
+		//set state of sem to free
 		semaphore->isFree = true;
+		//Error exception to protect system from not well nested semaphores
+		//If this fails the tasks were released in the wrong order!
+		if(semaphore != EXECTASK->lastsem)
+		{
+			
+			while(1);
+		}
+		//remove sem from semaphore List
+		EXECTASK->lastsem = semaphore->nextsem;
+		semaphore->nextsem = NULL;
 		interruptEnable();
 		return 1;
 	}

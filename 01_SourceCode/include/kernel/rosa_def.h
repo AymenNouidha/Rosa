@@ -64,6 +64,7 @@ typedef struct tcb_record_t {
 	int priority;           //The fixed priority of the task
 	int state;				//The state of the task
 	ticktime waketime;		//Wakeuptime for DELAYLIST
+	struct semaphoreHandle *lastsem; //Pointer to the last semaphore taken by the task
 } tcb;
 
 #endif /* rosa_def_H_ */

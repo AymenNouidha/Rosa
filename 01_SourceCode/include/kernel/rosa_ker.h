@@ -37,6 +37,8 @@ extern tcb * TCBLIST;
 extern tcb * EXECTASK;
 extern tcb * WAITINGLIST;
 
+extern unsigned int rosaInit;
+
 /***********************************************************
  * Kernel low level context switch functions
  ***********************************************************/

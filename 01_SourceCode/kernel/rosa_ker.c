@@ -31,7 +31,7 @@
 #include "kernel/rosa_tim.h"
 
 #include "kernel/rosa_utils.h"
-
+#include "kernel/rosa_sem.h"
 //Driver includes
 #include "drivers/button.h"
 #include "drivers/led.h"
@@ -43,7 +43,7 @@
  *
  * Comment:
  * 	Global variables that contain the list of TCB's that
- * 	have been installed into the kernel with ROSA_tcbInstall()
+ * 	have been installed into the kernel and are ready to execute
  **********************************************************/
 tcb * TCBLIST;
 
@@ -59,7 +59,7 @@ tcb * EXECTASK;
  * WAITINGLIST
  *
  * Comment:
- * 	Global variables that contain the list of waiting tasks
+ * 	Global variables that contain the list of waiting/ delayed tasks
  **********************************************************/
 tcb * WAITINGLIST;
 
@@ -75,9 +75,9 @@ static unsigned int taskNumber;
 * rosaInit
 *
 * Comment:
-* Tracks the number of Tasks created and deleted
+* Variable for checking whether the system in initialized before it is started
 **********************************************************/
-static unsigned int rosaInit = 0;
+unsigned int rosaInit = 0;
 
 
 //Data blocks for the idle task
@@ -86,16 +86,13 @@ static int IDLE_stack[IDLE_STACK_SIZE];
 static tcb IDLE_tcb;
 
 /*************************************************************
- * IDLE
+ * IDLE task function
  ************************************************************/
 void IDLE(void)
 {
 	while(1) {
-// 		ledOn(LED0_GPIO);
-// 		delay_ms(500);
 	}
 }
-
 
 
 /***********************************************************
@@ -118,21 +115,19 @@ void ROSA_init(void)
 	TCBLIST = NULL;
 	EXECTASK = NULL;
 
-	//Initialize the timer to 100 ms period.
-	//...
+	//Initialize the timer and the interrupt to 1 ms period.
 	
 	interruptInit();
 	timerInit(1);
-	//...
 	timerPeriodSet(1);
 	
+	rosaInit = 1;
 	//Install IDLE Task
 	ROSA_tcbCreate(&IDLE_tcb, "IDLE", IDLE,0, IDLE_stack, IDLE_STACK_SIZE);
 	tcb * tmptcb;
 	tmptcb=&IDLE_tcb;
 	tmptcb->priority = 0;
 	ROSA_tcbInstall(&IDLE_tcb);
-	rosaInit = 1;
 	
 }
 
@@ -181,7 +176,9 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
 	
-	// Set the task priority
+	tcbTask->lastsem = NULL;
+	
+	// Set the task priority and increment by one to ensure the idle task has the lowest prio
 	tcbTask->priority = taskPrio+1;
 	
 	// Set task state to NULL
@@ -258,8 +255,15 @@ void ROSA_tcbInstall(tcb * tcbTask)
 unsigned int ROSA_tcbDelete(tcb* tcbTask)
 {
 
-	//interruptDisable();
 	unsigned statusVal = 0;
+	semaphoreHandle* nextsemaphore = tcbTask->lastsem;
+	//Give all taken semaphores back
+	while(nextsemaphore != NULL)
+	{
+		nextsemaphore->isFree = true;
+		nextsemaphore->storedPrio = 0;
+		nextsemaphore = nextsemaphore->nextsem;
+	}
 	if(EXECTASK==tcbTask){
 		// Set task state to deleted
 		tcbTask->state = DELETED;
