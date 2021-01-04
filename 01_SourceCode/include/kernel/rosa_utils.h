@@ -2,7 +2,7 @@
  * rosa_utils.h
  *
  * Created: 14/12/2020 18:22:24
- *  Author: victo
+ *  Author: TEAM RUBUS
  */ 
 
 

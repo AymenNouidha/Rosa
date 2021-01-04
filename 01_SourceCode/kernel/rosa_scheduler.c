@@ -28,24 +28,14 @@
 #include "kernel/rosa_utils.h"
 #include "kernel/rosa_int.h"
 
+
+// Variable for tracking whether the system has started
 static bool _started = false;
 
 bool systemStarted(){
 	return _started;
 }
-/***********************************************************
- * scheduler
- *
- * Comment:
- * 	Minimalistic scheduler for round robin task switch.
- * 	This scheduler choose the next task to execute by looking
- * 	at the nexttcb of the current running task.
- **********************************************************/
-/*void scheduler(void)
-{
-	//Find the next task to execute
-	EXECTASK = EXECTASK->nexttcb;
-}*/
+
 
 /***********************************************************
  * dispatch
@@ -56,41 +46,61 @@ bool systemStarted(){
 void dispatch(void){
 	tcb* temp;
 	temp = TCBLIST;
-	
+	//extract the highest priority task from the TCBLIST and put it in the Executing state
 	if(ROSA_prv_extractTaskFromLIST(temp)){
 		temp->state = RUN;
 		temp->nexttcb = NULL;
 		EXECTASK = temp;
-		//interruptEnable();
   }	
 }
 /***********************************************************
  * scheduler
  *
  * Comment:
- * 	Minimalistic scheduler for round robin task switch.
+ * 	Minimalistic scheduler for context switch.
  * 	This scheduler choose the next task to execute by looking
- * 	at the nexttcb of the current running task.
+ * 	at the nexttcb of the current running task and compares the priorities.
  **********************************************************/
 void scheduler(void)
 {
 	interruptDisable();
+	
+	// When the running task delays itself, then dispatch the tasks
 	if(EXECTASK->state == DELAY){
 		dispatch();
 	}
+	
+	// schedule tasks regarding the priorities, forces a context switch when a higher priority task is ready to execute
 	else if(TCBLIST!=NULL && TCBLIST->priority > EXECTASK->priority){
-		//EXECTASK->state = READY;
-    ROSA_prv_insertTaskToTCBLIST(EXECTASK);
+		//Insert the running task to the readylist
+		ROSA_prv_insertTaskToTCBLIST(EXECTASK);
+		//dispatch the tasks
 		dispatch();
 	}
 	interruptEnable();
 	
 }
 
+/***********************************************************
+ * ROSA_schedulerStart
+ *
+ * Comment:
+ * 	Starts the ROSA scheduler with fixed priority preemptive scheduling algorithm.
+ *	Synchronisation among tasks will be implemented with IPCP.
+**********************************************************/
 void ROSA_schedulerStart(void)
 {
+	//Check whether the system was initialized propperly before
+	if(rosaInit==1)
+	{
+	//Set system Variable to started
 	_started = true;
+	//Start the timer for the Interrupts (Preemption)
 	timerStart();
+	//Start the scheduling
 	ROSA_start();
+	}
 	
+	while(1);
+
 }

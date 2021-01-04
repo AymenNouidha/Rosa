@@ -43,7 +43,7 @@
  *
  * Comment:
  * 	Global variables that contain the list of TCB's that
- * 	have been installed into the kernel with ROSA_tcbInstall()
+ * 	have been installed into the kernel and are ready to execute
  **********************************************************/
 tcb * TCBLIST;
 
@@ -59,7 +59,7 @@ tcb * EXECTASK;
  * WAITINGLIST
  *
  * Comment:
- * 	Global variables that contain the list of waiting tasks
+ * 	Global variables that contain the list of waiting/ delayed tasks
  **********************************************************/
 tcb * WAITINGLIST;
 
@@ -75,9 +75,9 @@ static unsigned int taskNumber;
 * rosaInit
 *
 * Comment:
-* Tracks the number of Tasks created and deleted
+* Variable for checking whether the system in initialized before it is started
 **********************************************************/
-static unsigned int rosaInit = 0;
+unsigned int rosaInit = 0;
 
 
 //Data blocks for the idle task
@@ -86,16 +86,13 @@ static int IDLE_stack[IDLE_STACK_SIZE];
 static tcb IDLE_tcb;
 
 /*************************************************************
- * IDLE
+ * IDLE task function
  ************************************************************/
 void IDLE(void)
 {
 	while(1) {
-// 		ledOn(LED0_GPIO);
-// 		delay_ms(500);
 	}
 }
-
 
 
 /***********************************************************
@@ -118,12 +115,10 @@ void ROSA_init(void)
 	TCBLIST = NULL;
 	EXECTASK = NULL;
 
-	//Initialize the timer to 100 ms period.
-	//...
+	//Initialize the timer and the interrupt to 1 ms period.
 	
 	interruptInit();
 	timerInit(1);
-	//...
 	timerPeriodSet(1);
 	
 	//Install IDLE Task
@@ -183,7 +178,7 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	
 	tcbTask->lastsem = NULL;
 	
-	// Set the task priority
+	// Set the task priority and increment by one to ensure the idle task has the lowest prio
 	tcbTask->priority = taskPrio+1;
 	
 	// Set task state to NULL
@@ -260,8 +255,8 @@ void ROSA_tcbInstall(tcb * tcbTask)
 unsigned int ROSA_tcbDelete(tcb* tcbTask)
 {
 
-	//interruptDisable();
 	unsigned statusVal = 0;
+
 	if(EXECTASK==tcbTask){
 		// Set task state to deleted
 		tcbTask->state = DELETED;

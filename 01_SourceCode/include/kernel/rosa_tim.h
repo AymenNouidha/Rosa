@@ -32,6 +32,7 @@
 /***********************************************************
  * Typedefs
  ***********************************************************/
+// Datatype for the system time tracking
 typedef uint32_t ticktime;
 #define MAX_TICK_TIME 4294967295
 
