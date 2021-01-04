@@ -181,6 +181,8 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	//Dont link this TCB anywhere yet.
 	tcbTask->nexttcb = NULL;
 	
+	tcbTask->lastsem = NULL;
+	
 	// Set the task priority
 	tcbTask->priority = taskPrio+1;
 	
