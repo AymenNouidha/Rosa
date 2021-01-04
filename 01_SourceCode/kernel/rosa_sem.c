@@ -22,6 +22,7 @@ semaphore_handle ROSA_semaphoreCreate(int priorityCeiling)
 	sem.isFree=true;
 	sem.ceilPrio=priorityCeiling+1;
 	sem.storedPrio=0;
+	sem.nextsem=NULL;
 	//= {.isFree = true; .ceilPrio = priorityCeiling;.storedPrio=0};
 	return sem;
 }
@@ -44,6 +45,8 @@ int ROSA_semaphoreTake(semaphore_handle* semaphore, uint32_t waitTime)
 	if (semaphore->isFree == true)
 	{
 		semaphore->isFree = false;
+		semaphore->nextsem = EXECTASK->lastsem;
+		EXECTASK->lastsem = semaphore;
 		semaphore->storedPrio = EXECTASK->priority;
 		if (semaphore->ceilPrio > EXECTASK->priority)
 			EXECTASK->priority = semaphore->ceilPrio;
@@ -82,6 +85,8 @@ int ROSA_semaphoreGive(semaphore_handle* semaphore)
 	if (semaphore->isFree == false)
 	{
 		EXECTASK->priority = semaphore->storedPrio;
+		EXECTASK->lastsem = semaphore->nextsem;
+		semaphore->nextsem = NULL;
 		semaphore->isFree = true;
 		interruptEnable();
 		return 1;
