@@ -256,7 +256,14 @@ unsigned int ROSA_tcbDelete(tcb* tcbTask)
 {
 
 	unsigned statusVal = 0;
-
+	semaphoreHandle* nextsemaphore = tcbTask->lastsem;
+	//Give all taken semaphores back
+	while(nextsemaphore != NULL)
+	{
+		nextsemaphore->isFree = true;
+		nextsemaphore->storedPrio = 0;
+		nextsemaphore = nextsemaphore->nextsem;
+	}
 	if(EXECTASK==tcbTask){
 		// Set task state to deleted
 		tcbTask->state = DELETED;
