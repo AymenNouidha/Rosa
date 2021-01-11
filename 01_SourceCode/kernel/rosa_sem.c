@@ -42,6 +42,9 @@ semaphoreHandle ROSA_semaphoreCreate(int priorityCeiling)
 int ROSA_semaphoreTake(semaphoreHandle* semaphore, uint32_t waitTime)
 {
 	interruptDisable();
+	//is semaphore inisitalized
+	if(semaphore!=NULL)
+	{
 	// when the semaphore is free take it
 	if (semaphore->isFree == true)
 	{
@@ -74,6 +77,8 @@ int ROSA_semaphoreTake(semaphoreHandle* semaphore, uint32_t waitTime)
 			return ROSA_semaphoreTake(semaphore, 0);
 		}
 	}
+	
+	}
 	return -1;
 }
 
@@ -89,6 +94,9 @@ int ROSA_semaphoreTake(semaphoreHandle* semaphore, uint32_t waitTime)
 int ROSA_semaphoreGive(semaphoreHandle* semaphore)
 {
 	interruptDisable();
+	//check whether sem is initialize
+	if(semaphore!=NULL)
+	{
 	// check whether semaphore was taken
 	if (semaphore->isFree == false)
 	{
@@ -110,6 +118,7 @@ int ROSA_semaphoreGive(semaphoreHandle* semaphore)
 		return 1;
 	}
 	
+	}
 	interruptEnable();
 	return 0;
 }

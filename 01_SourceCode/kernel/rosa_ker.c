@@ -265,15 +265,25 @@ unsigned int ROSA_tcbDelete(tcb* tcbTask)
 		nextsemaphore = nextsemaphore->nextsem;
 	}
 	if(EXECTASK==tcbTask){
+		//Startup exception
+		if(EXECTASK == TCBLIST)
+		{
+			tcb * tmpTcb=TCBLIST;
+			ROSA_prv_extractTaskFromLIST(tmpTcb);
+			tmpTcb->state=RUN;
+
+		}
 		// Set task state to deleted
 		tcbTask->state = DELETED;
+		//decrease the task number
+		taskNumber--;
 		// call dispatch to schedule next task
 		dispatch();
 		// restore the task context
 		Rosa_contextRestore();
 		return 1;
 	}
-	
+	taskNumber--;
 	statusVal = ROSA_prv_extractTaskFromLIST(tcbTask);
 	return statusVal;
 	
