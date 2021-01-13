@@ -197,7 +197,6 @@ unsigned int ROSA_tcbCreate(tcb * tcbTask, char tcbName[NAMESIZE], void *tcbFunc
 	tcbTask->savesr = ROSA_INITIALSR;
 
 	//Initialize context.
-	taskNumber++;
 	contextInit(tcbTask);
 	interruptEnable();
 	return 1;
@@ -222,6 +221,8 @@ void ROSA_tcbInstall(tcb * tcbTask)
 	}
 	else
 	{
+		// increment task number
+		taskNumber++;
 		interruptDisable();
 		// Handle if tcbtask has higher priority to EXECTASK
 		// Preemption should happen
